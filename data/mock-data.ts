@@ -124,3 +124,16 @@ export const mockProfiles = [
     updatedAt: new Date("2024-01-17"),
   }
 ]
+
+export const categories = [
+  "Marketing Digital",
+  "Social Media", 
+  "Desarrollo",
+  "Diseño",
+  "Ventas",
+  "Educación",
+  "Salud",
+  "Tecnología",
+  "Finanzas",
+  "E-commerce"
+]

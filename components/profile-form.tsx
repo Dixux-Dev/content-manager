@@ -1,16 +1,19 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { mockProfiles } from "@/data/mock-data"
 import { Save, Plus, Edit, Trash2 } from "lucide-react"
 
 export function ProfileForm() {
-  const [profiles, setProfiles] = useState(mockProfiles)
+  const { data: session } = useSession()
+  const [profiles, setProfiles] = useState<any[]>([])
   const [editingProfile, setEditingProfile] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -20,40 +23,65 @@ export function ProfileForm() {
     format: ""
   })
 
-  const handleSave = () => {
-    if (editingProfile) {
-      // Actualizar perfil existente
-      setProfiles(profiles.map(p => 
-        p.id === editingProfile.id 
-          ? { ...p, ...formData, updatedAt: new Date() }
-          : p
-      ))
-    } else {
-      // Crear nuevo perfil
-      const newProfile = {
-        id: String(profiles.length + 1),
-        ...formData,
-        creator: {
-          id: '1',
-          name: 'Admin User',
-          email: 'admin@example.com'
-        },
-        createdAt: new Date(),
-        updatedAt: new Date()
+  // Cargar perfiles desde API
+  useEffect(() => {
+    fetchProfiles()
+  }, [])
+
+  const fetchProfiles = async () => {
+    try {
+      const response = await fetch('/api/profiles')
+      if (response.ok) {
+        const data = await response.json()
+        setProfiles(data)
       }
-      setProfiles([...profiles, newProfile])
+    } catch (error) {
+      console.error('Error cargando perfiles:', error)
+    } finally {
+      setIsLoading(false)
     }
+  }
+
+  const handleSave = async () => {
+    if (!session?.user) return
     
-    // Limpiar formulario
-    setFormData({
-      name: "",
-      description: "",
-      prompt: "",
-      tone: "",
-      style: "",
-      format: ""
-    })
-    setEditingProfile(null)
+    setIsSaving(true)
+    try {
+      const url = '/api/profiles'
+      const method = editingProfile ? 'PUT' : 'POST'
+      const bodyData = editingProfile 
+        ? { ...formData, id: editingProfile.id }
+        : { ...formData, creatorId: session.user.id }
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(bodyData)
+      })
+
+      if (response.ok) {
+        await fetchProfiles() // Recargar la lista
+        // Limpiar formulario
+        setFormData({
+          name: "",
+          description: "",
+          prompt: "",
+          tone: "",
+          style: "",
+          format: ""
+        })
+        setEditingProfile(null)
+      } else {
+        alert('Error guardando perfil')
+      }
+    } catch (error) {
+      console.error('Error guardando perfil:', error)
+      alert('Error guardando perfil')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleEdit = (profile: any) => {
@@ -68,8 +96,36 @@ export function ProfileForm() {
     })
   }
 
-  const handleDelete = (id: string) => {
-    setProfiles(profiles.filter(p => p.id !== id))
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este perfil?')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/profiles?id=${id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        await fetchProfiles() // Recargar la lista
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Error eliminando perfil')
+      }
+    } catch (error) {
+      console.error('Error eliminando perfil:', error)
+      alert('Error eliminando perfil')
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <div>Cargando perfiles...</div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -150,10 +206,10 @@ export function ProfileForm() {
           <div className="flex gap-2">
             <Button 
               onClick={handleSave}
-              disabled={!formData.name || !formData.prompt}
+              disabled={!formData.name || !formData.prompt || isSaving}
             >
               <Save className="mr-2 h-4 w-4" />
-              {editingProfile ? "Actualizar" : "Guardar"} Perfil
+              {isSaving ? 'Guardando...' : editingProfile ? "Actualizar" : "Guardar"} Perfil
             </Button>
             {editingProfile && (
               <Button 

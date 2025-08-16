@@ -1,14 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { mockProfiles, categories } from "@/data/mock-data"
+import { categories } from "@/data/mock-data"
 import { Wand2, Save } from "lucide-react"
 
 export function ContentForm() {
+  const { data: session } = useSession()
+  const [profiles, setProfiles] = useState([])
   const [formData, setFormData] = useState({
     title: "",
     type: "SNIPPET",
@@ -20,6 +23,24 @@ export function ContentForm() {
   
   const [generatedContent, setGeneratedContent] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Cargar perfiles desde API
+  useEffect(() => {
+    fetchProfiles()
+  }, [])
+
+  const fetchProfiles = async () => {
+    try {
+      const response = await fetch('/api/profiles')
+      if (response.ok) {
+        const data = await response.json()
+        setProfiles(data)
+      }
+    } catch (error) {
+      console.error('Error cargando perfiles:', error)
+    }
+  }
 
   const handleGenerate = async () => {
     setIsGenerating(true)
@@ -37,9 +58,48 @@ export function ContentForm() {
     }, 2000)
   }
 
-  const handleSave = () => {
-    console.log("Guardando contenido:", { ...formData, content: generatedContent })
-    // Aquí se implementará el guardado real
+  const handleSave = async () => {
+    if (!session?.user || !generatedContent) return
+    
+    setIsSaving(true)
+    try {
+      const response = await fetch('/api/content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          type: formData.type,
+          category: formData.category,
+          content: generatedContent,
+          profileId: formData.profileId,
+          wordCount: formData.wordCount ? parseInt(formData.wordCount) : null,
+          lastEditorId: session.user.id
+        })
+      })
+
+      if (response.ok) {
+        alert('Contenido guardado exitosamente')
+        // Limpiar formulario
+        setFormData({
+          title: "",
+          type: "SNIPPET",
+          category: "",
+          profileId: "",
+          wordCount: "",
+          extraInstructions: ""
+        })
+        setGeneratedContent("")
+      } else {
+        alert('Error guardando contenido')
+      }
+    } catch (error) {
+      console.error('Error guardando contenido:', error)
+      alert('Error guardando contenido')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -96,7 +156,7 @@ export function ContentForm() {
               onChange={(e) => setFormData({...formData, profileId: e.target.value})}
             >
               <option value="">Selecciona un perfil</option>
-              {mockProfiles.map(profile => (
+              {profiles.map((profile: any) => (
                 <option key={profile.id} value={profile.id}>
                   {profile.name}
                 </option>
