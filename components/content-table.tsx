@@ -20,7 +20,21 @@ import { Badge } from "@/components/ui/badge"
 import { MultiCategorySelector } from "@/components/multi-category-selector"
 import { Editor } from "@/components/editor/editor"
 import { SerializedEditorState } from "lexical"
-import { serializedStateToHtml, htmlToSerializedState } from "@/lib/editor-utils"
+import { serializedStateToHtml, htmlToSerializedState, isEditorEmpty, serializedStateToText } from "@/lib/editor-utils"
+
+// Helper function to get displayable content
+function getDisplayableContent(content: string): string {
+  try {
+    const parsed = JSON.parse(content)
+    if (parsed.root && parsed.root.children) {
+      // It's a serialized Lexical state, convert to HTML
+      return serializedStateToHtml(parsed)
+    }
+  } catch (e) {
+    // Not JSON, return as is (HTML or text)
+  }
+  return content
+}
 
 interface ContentTableProps {
   userRole?: 'ADMIN' | 'VIEWER'
@@ -205,7 +219,10 @@ export function ContentTable({ userRole = 'VIEWER' }: ContentTableProps) {
                         size="sm" 
                         variant="ghost"
                         title="Ver contenido"
-                        onClick={() => alert(`Contenido: ${item.content.substring(0, 100)}...`)}
+                        onClick={() => {
+                          const displayContent = getDisplayableContent(item.content)
+                          alert(`Contenido: ${displayContent.substring(0, 200)}...`)
+                        }}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -276,7 +293,7 @@ function ContentFormModal({
 
   const [profiles, setProfiles] = useState([])
   const [isLoading, setIsLoading] = useState(false)
-  const [editorKey, setEditorKey] = useState<string>(`editor-${Date.now()}`)
+  // REMOVED: editorKey state that was causing re-mounts
   const [editorState, setEditorState] = useState<SerializedEditorState | undefined>()
 
   // Actualizar formData cuando cambia el contenido
@@ -290,24 +307,12 @@ function ContentFormModal({
         profileId: content.profileId || ''
       })
       
-      // Reset editor state for new content
-      try {
-        if (content.content && content.content.trim()) {
-          const lexicalState = htmlToSerializedState(content.content)
-          setEditorState(lexicalState)
-        } else {
-          setEditorState(undefined)
-        }
-        setEditorKey(`editor-${content.id || 'new'}-${Date.now()}`)
-      } catch (error) {
-        console.error('Error converting content to editor state:', error)
-        setEditorState(undefined)
-        setEditorKey(`editor-fallback-${Date.now()}`)
-      }
+      // FIXED: Content is now always HTML, so clear editor state and let initialValue handle it
+      console.log('🎨 Loading content as HTML:', content.content)
+      setEditorState(undefined)
     } else {
       // New content - reset editor
       setEditorState(undefined)
-      setEditorKey(`editor-new-${Date.now()}`)
     }
   }, [content])
 
@@ -356,9 +361,18 @@ function ContentFormModal({
       const url = content ? '/api/content' : '/api/content'
       const method = content ? 'PUT' : 'POST'
       
+      // SIMPLIFIED: Convert editor state to HTML or use existing content
+      const contentToSave = editorState ? serializedStateToHtml(editorState) : formData.content
+      
       const bodyData = content ? 
-        { ...formData, id: content.id } : 
-        { ...formData }
+        { ...formData, content: contentToSave, id: content.id } : 
+        { ...formData, content: contentToSave }
+
+      console.log('🎨 === CONTENT TABLE SAVING ===')
+      console.log('🎨 Method:', method)
+      console.log('🎨 Body data:', bodyData)
+      console.log('🎨 Content being saved:', contentToSave)
+      console.log('🎨 Is serialized state:', !!editorState)
 
       const response = await fetch(url, {
         method,
@@ -369,13 +383,19 @@ function ContentFormModal({
       })
 
       if (response.ok) {
+        const savedData = await response.json()
+        console.log('🎨 === CONTENT TABLE SAVED SUCCESSFULLY ===')
+        console.log('🎨 Saved data response:', savedData)
         onSave()
         onClose()
       } else {
+        const errorData = await response.json()
+        console.log('🎨 === CONTENT TABLE SAVE ERROR ===')
+        console.log('🎨 Error data:', errorData)
         alert('Error guardando contenido')
       }
     } catch (error) {
-      console.error('Error guardando contenido:', error)
+      console.error('🎨 === CONTENT TABLE SAVE EXCEPTION ===', error)
       alert('Error guardando contenido')
     } finally {
       setIsLoading(false)
@@ -384,7 +404,7 @@ function ContentFormModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={onClose}>
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-lg p-6 w-[80%] max-w-6xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-xl font-bold mb-4">
           {content ? 'Editar Contenido' : 'Nuevo Contenido'}
         </h2>
@@ -440,19 +460,8 @@ function ContentFormModal({
             <label className="block text-sm font-medium mb-1">Contenido</label>
             <div className="mt-2" onClick={(e) => e.stopPropagation()}>
               <Editor
-                key={editorKey}
-                editorSerializedState={editorState}
-                initialValue={!editorState ? formData.content : undefined}
-                onSerializedChange={(state) => {
-                  // Update editor state and convert to HTML
-                  setEditorState(state)
-                  try {
-                    const htmlContent = serializedStateToHtml(state)
-                    setFormData(prevFormData => ({...prevFormData, content: htmlContent}))
-                  } catch (error) {
-                    console.error('Error converting editor state to HTML:', error)
-                  }
-                }}
+                initialValue={formData.content}
+                onSerializedChange={setEditorState}
                 placeholder="Escribe o edita el contenido aquí..."
               />
             </div>

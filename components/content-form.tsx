@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { profileEvents } from "@/lib/profile-events"
 import { MultiCategorySelector } from "@/components/multi-category-selector"
@@ -12,7 +13,6 @@ import { Editor } from "@/components/editor/editor"
 import { StyledContent } from "@/components/editor/styled-content"
 import { SerializedEditorState } from "lexical"
 import { serializedStateToText, isEditorEmpty, htmlToSerializedState, serializedStateToHtml } from "@/lib/editor-utils"
-import { simpleSerializedStateToHtml } from "@/lib/simple-converter"
 import { Wand2, Save } from "lucide-react"
 
 export function ContentForm() {
@@ -37,9 +37,8 @@ export function ContentForm() {
   }>({})
   const [generationTime, setGenerationTime] = useState<number>(0)
   const [isTimerRunning, setIsTimerRunning] = useState(false)
-  const [extraInstructionsEditorState, setExtraInstructionsEditorState] = useState<SerializedEditorState | undefined>()
+  // Removed extraInstructionsEditorState - using simple text now
   const [contentEditorState, setContentEditorState] = useState<SerializedEditorState | undefined>()
-  const [contentKey, setContentKey] = useState<string>('empty')
 
   // Cargar perfiles desde API
   useEffect(() => {
@@ -137,13 +136,7 @@ export function ContentForm() {
           // Clear editor state and force re-mount for fresh styling
           setContentEditorState(undefined)
           
-          // Use timeout to ensure state is cleared before setting new key
-          setTimeout(() => {
-            // Update the key to force fresh editor mounting with proper styling
-            const newKey = `generated-${Date.now()}`
-            console.log('=== SETTING NEW CONTENT KEY ===', newKey)
-            setContentKey(newKey)
-          }, 50)
+          // REMOVED: contentKey logic no longer needed
           
           setGenerationStats({
             wordCount: data.content.split(/\s+/).length,
@@ -155,7 +148,6 @@ export function ContentForm() {
           console.log('=== NO CONTENT GENERATED ===')
           setGeneratedContent("")
           setContentEditorState(undefined)
-          setContentKey(`empty-${Date.now()}`)
           
           setGenerationStats({
             wordCount: 0,
@@ -176,23 +168,14 @@ export function ContentForm() {
     }
   }, [formData])
 
-  // Move useCallback hooks to top level to fix Rules of Hooks violations
-  const handleExtraInstructionsChange = useCallback((state: SerializedEditorState) => {
-    setExtraInstructionsEditorState(state)
-    // Convert the rich text editor content to text for backend compatibility
-    const textContent = serializedStateToText(state)
-    setFormData(prev => ({...prev, extraInstructions: textContent}))
+  // Simplified handler for extra instructions textarea
+  const handleExtraInstructionsChange = useCallback((value: string) => {
+    setFormData(prev => ({...prev, extraInstructions: value}))
   }, [])
 
   const handleContentEditorChange = useCallback((state: SerializedEditorState) => {
-    console.log('=== EDITOR STATE CHANGED ===')
-    console.log('New state:', JSON.stringify(state, null, 2))
-    
-    // Always update the editor state when user makes changes
+    console.log('✏️ Editor content changed, text:', serializedStateToText(state).substring(0, 50))
     setContentEditorState(state)
-    
-    // No need to update generatedContent here - keep original for reference
-    // The conversion to HTML will happen during save
   }, [])
 
   const handleSave = useCallback(async () => {
@@ -203,23 +186,21 @@ export function ContentForm() {
     
     setIsSaving(true)
     try {
-      // FIXED: Always use the latest editor state if available, fallback to generated content
+      // SIMPLIFIED: Use current editor state if available, otherwise use generated content
       let contentToSave: string
-      if (contentEditorState && !isEditorEmpty(contentEditorState)) {
-        // User has edited or editor has valid content - use the current editor state
+      
+      if (contentEditorState) {
+        // Convert current editor state to HTML
         contentToSave = serializedStateToHtml(contentEditorState)
-        console.log('=== SAVING EDITED CONTENT ===')
-        console.log('Using contentEditorState:', JSON.stringify(contentEditorState, null, 2))
-      } else if (generatedContent && generatedContent.trim()) {
-        // No edits made or empty editor - use original generated content
-        contentToSave = generatedContent
-        console.log('=== SAVING ORIGINAL CONTENT ===')
-        console.log('Using generatedContent:', generatedContent)
+        console.log('💾 Saving editor state as HTML:', contentToSave.substring(0, 200) + '...')
       } else {
-        alert('No hay contenido válido para guardar')
-        setIsSaving(false)
-        return
+        // Use original generated content
+        contentToSave = generatedContent
+        console.log('💾 Saving original generated content:', contentToSave.substring(0, 200) + '...')
       }
+      
+      console.log('🎨 === SENDING TO API ===')
+      console.log('🎨 Final content being sent to API:', contentToSave)
       
       const response = await fetch('/api/content', {
         method: 'POST',
@@ -238,6 +219,9 @@ export function ContentForm() {
       })
 
       if (response.ok) {
+        const savedData = await response.json()
+        console.log('🎨 === CONTENT SAVED SUCCESSFULLY ===')
+        console.log('🎨 Saved data response:', savedData)
         alert('Contenido guardado exitosamente')
         // Limpiar formulario
         setFormData({
@@ -250,10 +234,10 @@ export function ContentForm() {
         })
         setGeneratedContent("")
         setContentEditorState(undefined)
-        setExtraInstructionsEditorState(undefined)
-        setContentKey('empty')
       } else {
         const errorData = await response.json()
+        console.log('🎨 === SAVE ERROR ===')
+        console.log('🎨 Error data:', errorData)
         alert(`Error guardando contenido: ${errorData.error || 'Error desconocido'}`)
       }
     } catch (error) {
@@ -335,14 +319,14 @@ export function ContentForm() {
 
           <div>
             <Label htmlFor="extra">Instrucciones Adicionales</Label>
-            <div className="mt-2">
-              <Editor
-                editorSerializedState={extraInstructionsEditorState}
-                onSerializedChange={handleExtraInstructionsChange}
-                initialValue={formData.extraInstructions}
-                placeholder="Agrega instrucciones específicas..."
-              />
-            </div>
+            <Textarea
+              id="extra"
+              value={formData.extraInstructions}
+              onChange={(e) => handleExtraInstructionsChange(e.target.value)}
+              placeholder="Agrega instrucciones específicas..."
+              className="mt-2"
+              rows={4}
+            />
           </div>
 
           <Button 
@@ -397,8 +381,6 @@ export function ContentForm() {
                 <div className="mt-2">
                   <StyledContent>
                     <Editor
-                      key={contentKey}
-                      editorSerializedState={contentEditorState}
                       onSerializedChange={handleContentEditorChange}
                       initialValue={generatedContent}
                       placeholder="El contenido generado aparecerá aquí para editar..."

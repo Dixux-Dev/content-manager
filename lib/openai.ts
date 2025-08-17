@@ -174,7 +174,7 @@ export async function getCurrentProvider() {
     return {
       name: provider.provider,
       config: provider.config,
-      stats: provider.getConnectionStats?.() || null
+      stats: (provider as any).getConnectionStats?.() || null
     }
   } catch (error) {
     return {

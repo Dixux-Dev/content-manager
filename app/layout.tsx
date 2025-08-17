@@ -3,7 +3,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { Sidebar } from "@/components/sidebar"
 import { AuthProvider } from "@/components/providers/auth-provider"
-import { SyntaxHighlighterEnhancer } from "@/components/syntax-highlighter"
+import { SimpleSyntaxHighlighter } from "@/components/simple-syntax-highlighter"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -22,7 +22,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           {children}
-          <SyntaxHighlighterEnhancer />
+          <SimpleSyntaxHighlighter />
         </AuthProvider>
       </body>
     </html>

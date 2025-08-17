@@ -2,6 +2,54 @@ import { EditorState, SerializedEditorState, $getRoot } from 'lexical'
 import { $generateHtmlFromNodes } from '@lexical/html'
 import { detectLanguage } from '@/components/ui/code-block'
 
+// Helper function to validate and create safe text nodes
+function createSafeTextNode(text: string, format: number = 0): any {
+  // Ensure text is valid
+  if (typeof text !== 'string') {
+    console.warn('🔍 Invalid text for node:', text)
+    text = String(text || '')
+  }
+  
+  // Ensure format is a valid number
+  if (typeof format !== 'number' || isNaN(format)) {
+    console.warn('🔍 Invalid format for node:', format)
+    format = 0
+  }
+  
+  return {
+    detail: 0,
+    format: format,
+    mode: "normal",
+    style: "",
+    text: text,
+    type: "text",
+    version: 1
+  }
+}
+
+// Helper function to create safe paragraph nodes
+function createSafeParagraphNode(children: any[] = []): any {
+  // Validate children array
+  if (!Array.isArray(children)) {
+    console.warn('🔍 Invalid children for paragraph:', children)
+    children = []
+  }
+  
+  // Filter out invalid children
+  const validChildren = children.filter(child => {
+    return child && typeof child === 'object' && child.type === 'text'
+  })
+  
+  return {
+    children: validChildren,
+    direction: "ltr",
+    format: "",
+    indent: 0,
+    type: "paragraph",
+    version: 1
+  }
+}
+
 // Convierte el estado del editor a texto plano
 export function editorStateToText(editorState: EditorState): string {
   return editorState.read(() => {
@@ -72,25 +120,34 @@ function parseInlineElements(element: HTMLElement): any[] {
       const text = node.textContent || ''
       // FIX: Don't skip whitespace-only text nodes - they are important for table cells
       if (text.length > 0) {
-        nodes.push({
-          detail: 0,
-          format: format,
-          mode: "normal",
-          style: "",
-          text: text,
-          type: "text",
-          version: 1
-        })
+        nodes.push(createSafeTextNode(text, format))
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       const el = node as HTMLElement
       const tagName = el.tagName.toLowerCase()
+      const classList = Array.from(el.classList)
       
       let newFormat = format
+      
+      // Handle HTML tags
       if (tagName === 'strong' || tagName === 'b') newFormat = newFormat | 1 // bold
       if (tagName === 'em' || tagName === 'i') newFormat = newFormat | 2 // italic
       if (tagName === 'u') newFormat = newFormat | 8 // underline
       if (tagName === 's' || tagName === 'strike') newFormat = newFormat | 4 // strikethrough
+      
+      // FIXED: Handle Lexical theme classes
+      if (classList.includes('EditorTheme__textBold')) newFormat = newFormat | 1 // bold
+      if (classList.includes('EditorTheme__textItalic')) newFormat = newFormat | 2 // italic
+      if (classList.includes('EditorTheme__textUnderline') || classList.includes('EditorTheme__textUnderlineStrikethrough')) newFormat = newFormat | 8 // underline
+      if (classList.includes('EditorTheme__textStrikethrough') || classList.includes('EditorTheme__textUnderlineStrikethrough')) newFormat = newFormat | 4 // strikethrough
+      
+      console.log('🔍 Processing element:', {
+        tagName,
+        classList: classList,
+        originalFormat: format,
+        newFormat: newFormat,
+        formatDiff: newFormat ^ format
+      })
       
       // Handle <br> tags as newlines in text content
       if (tagName === 'br') {
@@ -103,6 +160,20 @@ function parseInlineElements(element: HTMLElement): any[] {
           type: "text",
           version: 1
         })
+      } else if (tagName === 'span' && el.hasAttribute('data-lexical-text')) {
+        // FIXED: Handle Lexical text spans with formatting classes
+        const text = el.textContent || ''
+        if (text.length > 0) {
+          console.log('🔍 Found Lexical text span:', {
+            text: text,
+            classes: classList,
+            finalFormat: newFormat
+          })
+          
+          nodes.push(createSafeTextNode(text, newFormat))
+        }
+        // Don't process children since we already extracted the text
+        return
       } else if (tagName === 'code') {
         // For inline code elements, preserve their text content as-is
         const text = el.textContent || ''
@@ -116,7 +187,10 @@ function parseInlineElements(element: HTMLElement): any[] {
           version: 1
         })
       } else {
-        el.childNodes.forEach(child => processNode(child, newFormat))
+        // Only process children for non-span elements or spans without data-lexical-text
+        if (!(tagName === 'span' && el.hasAttribute('data-lexical-text'))) {
+          el.childNodes.forEach(child => processNode(child, newFormat))
+        }
       }
     }
   }
@@ -172,143 +246,10 @@ export function htmlToSerializedState(html: string): SerializedEditorState {
   const children: any[] = []
   
   elements.forEach((element) => {
-    if (element.nodeType === Node.TEXT_NODE) {
-      const text = element.textContent?.trim()
-      if (text) {
-        children.push({
-          children: [{
-            detail: 0,
-            format: 0,
-            mode: "normal",
-            style: "",
-            text: text,
-            type: "text",
-            version: 1
-          }],
-          direction: "ltr",
-          format: "",
-          indent: 0,
-          type: "paragraph",
-          version: 1
-        })
-      }
-    } else if (element.nodeType === Node.ELEMENT_NODE) {
-      const el = element as HTMLElement
-      const tagName = el.tagName.toLowerCase()
-      
-      if (tagName === 'p') {
-        const textNodes = parseInlineElements(el)
-        if (textNodes.length > 0) {
-          children.push({
-            children: textNodes,
-            direction: "ltr",
-            format: "",
-            indent: 0,
-            type: "paragraph",
-            version: 1
-          })
-        }
-      } else if (tagName.match(/^h[1-6]$/)) {
-        const textNodes = parseInlineElements(el)
-        if (textNodes.length > 0) {
-          children.push({
-            children: textNodes,
-            direction: "ltr",
-            format: "",
-            indent: 0,
-            tag: tagName,
-            type: "heading",
-            version: 1
-          })
-        }
-      } else if (tagName === 'blockquote') {
-        const textNodes = parseInlineElements(el)
-        if (textNodes.length > 0) {
-          children.push({
-            children: textNodes,
-            direction: "ltr",
-            format: "",
-            indent: 0,
-            type: "quote",
-            version: 1
-          })
-        }
-      } else if (tagName === 'code') {
-        // Special handling for Lexical code blocks with span structure
-        const spans = el.querySelectorAll('span[data-lexical-text="true"]')
-        
-        if (spans.length > 0) {
-          // Lexical structure: multiple spans + br tags
-          const textParts: string[] = []
-          
-          // Process each child node to preserve line breaks
-          Array.from(el.childNodes).forEach((node) => {
-            if (node.nodeType === Node.ELEMENT_NODE) {
-              const element = node as HTMLElement
-              if (element.tagName.toLowerCase() === 'span' && element.getAttribute('data-lexical-text') === 'true') {
-                // Extract text from span and decode HTML entities
-                let spanText = element.textContent || ''
-                spanText = decodeHtmlEntities(spanText)
-                textParts.push(spanText)
-              } else if (element.tagName.toLowerCase() === 'br') {
-                // Add newline for br tags
-                textParts.push('\n')
-              }
-            } else if (node.nodeType === Node.TEXT_NODE) {
-              // Handle text nodes (though they shouldn't exist in Lexical structure)
-              const text = node.textContent || ''
-              if (text.trim()) {
-                textParts.push(text)
-              }
-            }
-          })
-          
-          const finalText = textParts.join('')
-          
-          // Extract language information from data-language attribute
-          const language = el.getAttribute('data-language') || detectLanguage(finalText)
-          
-          children.push({
-            children: [{
-              detail: 0,
-              format: 0,
-              mode: "normal",
-              style: "",
-              text: finalText,
-              type: "text",
-              version: 1
-            }],
-            direction: "ltr",
-            format: "",
-            indent: 0,
-            type: "code",
-            language: language, // Store language for future use
-            version: 1
-          })
-        } else {
-          // Fallback for non-Lexical code blocks
-          // Try textContent first to preserve natural newlines from white-space: pre-line
-          let text = el.textContent || ''
-          
-          if (!text || text.length === 0) {
-            // If textContent is empty, try innerHTML and process it
-            text = el.innerHTML || ''
-            
-            if (text) {
-              // Handle <br> tags and normalize line endings
-              text = text
-                .replace(/<br\s*\/?>/gi, '\n') // Convert <br> tags to newlines
-                .replace(/\r\n/g, '\n') // Normalize line endings
-                .replace(/\r/g, '\n')
-              
-              // Then decode HTML entities
-              text = decodeHtmlEntities(text)
-            }
-          }
-          
-          // Extract language information from data-language attribute
-          const language = el.getAttribute('data-language') || detectLanguage(text)
-          
+    try {
+      if (element.nodeType === Node.TEXT_NODE) {
+        const text = element.textContent?.trim()
+        if (text) {
           children.push({
             children: [{
               detail: 0,
@@ -322,264 +263,19 @@ export function htmlToSerializedState(html: string): SerializedEditorState {
             direction: "ltr",
             format: "",
             indent: 0,
-            type: "code",
-            language: language, // Store language for future use
-            version: 1
-          })
-        }
-      } else if (tagName === 'table') {
-        // Handle table parsing
-        const rows = Array.from(el.querySelectorAll('tr'))
-        if (rows.length > 0) {
-          const tableChildren: any[] = []
-          
-          rows.forEach((row, rowIndex) => {
-            const cells = Array.from(row.querySelectorAll('td, th'))
-            const rowChildren: any[] = []
-            
-            cells.forEach((cell, cellIndex) => {
-              const cellTextNodes = parseInlineElements(cell as HTMLElement)
-              
-              // Create a paragraph inside the cell
-              // FIX: Ensure we always have text content, use cell.textContent as fallback
-              let finalTextNodes = cellTextNodes
-              if (cellTextNodes.length === 0 || (cellTextNodes.length === 1 && !cellTextNodes[0].text)) {
-                const fallbackText = cell.textContent || ""
-                finalTextNodes = [{
-                  detail: 0,
-                  format: 0,
-                  mode: "normal",
-                  style: "",
-                  text: fallbackText,
-                  type: "text",
-                  version: 1
-                }]
-              }
-              
-              const cellParagraph = {
-                children: finalTextNodes,
-                direction: "ltr",
-                format: "",
-                indent: 0,
-                type: "paragraph",
-                version: 1
-              }
-              
-              rowChildren.push({
-                children: [cellParagraph],
-                direction: "ltr",
-                format: "",
-                indent: 0,
-                type: "tablecell",
-                headerState: cell.tagName.toLowerCase() === 'th' ? 3 : 0, // 3 for header, 0 for normal
-                version: 1
-              })
-            })
-            
-            if (rowChildren.length > 0) {
-              tableChildren.push({
-                children: rowChildren,
-                direction: "ltr",
-                format: "",
-                indent: 0,
-                type: "tablerow",
-                version: 1
-              })
-            }
-          })
-          
-          if (tableChildren.length > 0) {
-            children.push({
-              children: tableChildren,
-              direction: "ltr",
-              format: "",
-              indent: 0,
-              type: "table",
-              version: 1
-            })
-          }
-        }
-      } else if (tagName === 'ul' || tagName === 'ol') {
-        // Handle list parsing with nested list support
-        const processListItem = (item: HTMLElement): any => {
-          const itemTextNodes: any[] = []
-          const nestedLists: any[] = []
-          
-          // Process child nodes to separate text content from nested lists
-          Array.from(item.childNodes).forEach((child) => {
-            if (child.nodeType === Node.TEXT_NODE) {
-              const text = child.textContent?.trim()
-              if (text) {
-                itemTextNodes.push({
-                  detail: 0,
-                  format: 0,
-                  mode: "normal",
-                  style: "",
-                  text: text,
-                  type: "text",
-                  version: 1
-                })
-              }
-            } else if (child.nodeType === Node.ELEMENT_NODE) {
-              const childEl = child as HTMLElement
-              const childTag = childEl.tagName.toLowerCase()
-              
-              if (childTag === 'ul' || childTag === 'ol') {
-                // Found nested list - process it recursively
-                const nestedItems = Array.from(childEl.querySelectorAll(':scope > li'))
-                const nestedListChildren: any[] = []
-                
-                nestedItems.forEach((nestedItem) => {
-                  const nestedTextNodes = parseInlineElements(nestedItem as HTMLElement)
-                  
-                  // Create paragraph for nested item
-                  const nestedParagraph = {
-                    children: nestedTextNodes.length > 0 ? nestedTextNodes : [{
-                      detail: 0,
-                      format: 0,
-                      mode: "normal", 
-                      style: "",
-                      text: "",
-                      type: "text",
-                      version: 1
-                    }],
-                    direction: "ltr",
-                    format: "",
-                    indent: 0,
-                    type: "paragraph",
-                    version: 1
-                  }
-                  
-                  nestedListChildren.push({
-                    children: [nestedParagraph],
-                    direction: "ltr",
-                    format: "",
-                    indent: 0,
-                    type: "listitem",
-                    version: 1
-                  })
-                })
-                
-                if (nestedListChildren.length > 0) {
-                  nestedLists.push({
-                    children: nestedListChildren,
-                    direction: "ltr",
-                    format: "",
-                    indent: 0,
-                    listType: childTag === 'ol' ? 'number' : 'bullet',
-                    start: childTag === 'ol' ? 1 : null,
-                    tag: childTag,
-                    type: "list",
-                    version: 1
-                  })
-                }
-              } else {
-                // Process other inline elements
-                const inlineNodes = parseInlineElements(childEl)
-                itemTextNodes.push(...inlineNodes)
-              }
-            }
-          })
-          
-          // Create the main paragraph for this list item
-          const itemParagraph = {
-            children: itemTextNodes.length > 0 ? itemTextNodes : [{
-              detail: 0,
-              format: 0,
-              mode: "normal",
-              style: "",
-              text: "",
-              type: "text",
-              version: 1
-            }],
-            direction: "ltr",
-            format: "",
-            indent: 0,
             type: "paragraph",
             version: 1
-          }
-          
-          // Combine paragraph and nested lists
-          const itemChildren = [itemParagraph, ...nestedLists]
-          
-          return {
-            children: itemChildren,
-            direction: "ltr",
-            format: "",
-            indent: 0,
-            type: "listitem",
-            version: 1
-          }
-        }
-        
-        // Process only direct li children (not nested ones)
-        const directListItems = Array.from(el.querySelectorAll(':scope > li'))
-        if (directListItems.length > 0) {
-          const listChildren: any[] = []
-          
-          directListItems.forEach((item) => {
-            const listItem = processListItem(item as HTMLElement)
-            listChildren.push(listItem)
           })
-          
-          if (listChildren.length > 0) {
-            children.push({
-              children: listChildren,
-              direction: "ltr",
-              format: "",
-              indent: 0,
-              listType: tagName === 'ol' ? 'number' : 'bullet',
-              start: tagName === 'ol' ? 1 : null,
-              tag: tagName,
-              type: "list",
-              version: 1
-            })
-          }
         }
-      } else if (tagName === 'img') {
-        // Handle images with proper ImageNode
-        const src = el.getAttribute('src') || ''
-        const alt = el.getAttribute('alt') || ''
-        const width = el.getAttribute('width')
-        const height = el.getAttribute('height')
+      } else if (element.nodeType === Node.ELEMENT_NODE) {
+        const el = element as HTMLElement
+        const tagName = el.tagName.toLowerCase()
         
-        // Create proper image node
-        children.push({
-          type: 'image',
-          version: 1,
-          src: src,
-          altText: alt,
-          width: width ? parseInt(width) : 0,
-          height: height ? parseInt(height) : 0,
-          maxWidth: 800,
-          showCaption: false
-        })
-      } else if (tagName === 'br') {
-        // Handle line breaks by creating empty paragraph
-        children.push({
-          children: [],
-          direction: "ltr",
-          format: "",
-          indent: 0,
-          type: "paragraph",
-          version: 1
-        })
-      } else {
-        // Default to paragraph for other elements, but preserve HTML if it contains tags
-        if (el.children.length > 0) {
-          // Element has child elements - preserve as HTML
-          const htmlContent = el.outerHTML || el.innerHTML || ''
-          if (htmlContent.trim()) {
+        if (tagName === 'p') {
+          const textNodes = parseInlineElements(el)
+          if (textNodes.length > 0) {
             children.push({
-              children: [{
-                detail: 0,
-                format: 0,
-                mode: "normal",
-                style: "",
-                text: htmlContent,
-                type: "text",
-                version: 1
-              }],
+              children: textNodes,
               direction: "ltr",
               format: "",
               indent: 0,
@@ -587,10 +283,107 @@ export function htmlToSerializedState(html: string): SerializedEditorState {
               version: 1
             })
           }
-        } else {
-          // Element only has text content
-          const text = el.textContent || ''
-          if (text.trim()) {
+        } else if (tagName.match(/^h[1-6]$/)) {
+          const textNodes = parseInlineElements(el)
+          if (textNodes.length > 0) {
+            children.push({
+              children: textNodes,
+              direction: "ltr",
+              format: "",
+              indent: 0,
+              tag: tagName,
+              type: "heading",
+              version: 1
+            })
+          }
+        } else if (tagName === 'blockquote') {
+          const textNodes = parseInlineElements(el)
+          if (textNodes.length > 0) {
+            children.push({
+              children: textNodes,
+              direction: "ltr",
+              format: "",
+              indent: 0,
+              type: "quote",
+              version: 1
+            })
+          }
+        } else if (tagName === 'code') {
+          // Special handling for Lexical code blocks with span structure
+          const spans = el.querySelectorAll('span[data-lexical-text="true"]')
+          
+          if (spans.length > 0) {
+            // Lexical structure: multiple spans + br tags
+            const textParts: string[] = []
+            
+            // Process each child node to preserve line breaks
+            Array.from(el.childNodes).forEach((node) => {
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                const element = node as HTMLElement
+                if (element.tagName.toLowerCase() === 'span' && element.getAttribute('data-lexical-text') === 'true') {
+                  // Extract text from span and decode HTML entities
+                  let spanText = element.textContent || ''
+                  spanText = decodeHtmlEntities(spanText)
+                  textParts.push(spanText)
+                } else if (element.tagName.toLowerCase() === 'br') {
+                  // Add newline for br tags
+                  textParts.push('\n')
+                }
+              } else if (node.nodeType === Node.TEXT_NODE) {
+                // Handle text nodes (though they shouldn't exist in Lexical structure)
+                const text = node.textContent || ''
+                if (text.trim()) {
+                  textParts.push(text)
+                }
+              }
+            })
+            
+            const finalText = textParts.join('')
+            
+            // Extract language information from data-language attribute
+            const language = el.getAttribute('data-language') || detectLanguage(finalText)
+            
+            children.push({
+              children: [{
+                detail: 0,
+                format: 0,
+                mode: "normal",
+                style: "",
+                text: finalText,
+                type: "text",
+                version: 1
+              }],
+              direction: "ltr",
+              format: "",
+              indent: 0,
+              type: "code",
+              language: language, // Store language for future use
+              version: 1
+            })
+          } else {
+            // Fallback for non-Lexical code blocks
+            // Try textContent first to preserve natural newlines from white-space: pre-line
+            let text = el.textContent || ''
+            
+            if (!text || text.length === 0) {
+              // If textContent is empty, try innerHTML and process it
+              text = el.innerHTML || ''
+              
+              if (text) {
+                // Handle <br> tags and normalize line endings
+                text = text
+                  .replace(/<br\s*\/?>/gi, '\n') // Convert <br> tags to newlines
+                  .replace(/\r\n/g, '\n') // Normalize line endings
+                  .replace(/\r/g, '\n')
+                
+                // Then decode HTML entities
+                text = decodeHtmlEntities(text)
+              }
+            }
+            
+            // Extract language information from data-language attribute
+            const language = el.getAttribute('data-language') || detectLanguage(text)
+            
             children.push({
               children: [{
                 detail: 0,
@@ -604,17 +397,304 @@ export function htmlToSerializedState(html: string): SerializedEditorState {
               direction: "ltr",
               format: "",
               indent: 0,
-              type: "paragraph",
+              type: "code",
+              language: language, // Store language for future use
               version: 1
             })
           }
+        } else if (tagName === 'table') {
+          // Handle table parsing
+          const rows = Array.from(el.querySelectorAll('tr'))
+          if (rows.length > 0) {
+            const tableChildren: any[] = []
+            
+            rows.forEach((row, rowIndex) => {
+              const cells = Array.from(row.querySelectorAll('td, th'))
+              const rowChildren: any[] = []
+              
+              cells.forEach((cell, cellIndex) => {
+                const cellTextNodes = parseInlineElements(cell as HTMLElement)
+                
+                // Create a paragraph inside the cell
+                // FIX: Ensure we always have text content, use cell.textContent as fallback
+                let finalTextNodes = cellTextNodes
+                if (cellTextNodes.length === 0 || (cellTextNodes.length === 1 && !cellTextNodes[0].text)) {
+                  const fallbackText = cell.textContent || ""
+                  finalTextNodes = [{
+                    detail: 0,
+                    format: 0,
+                    mode: "normal",
+                    style: "",
+                    text: fallbackText,
+                    type: "text",
+                    version: 1
+                  }]
+                }
+                
+                const cellParagraph = {
+                  children: finalTextNodes,
+                  direction: "ltr",
+                  format: "",
+                  indent: 0,
+                  type: "paragraph",
+                  version: 1
+                }
+                
+                rowChildren.push({
+                  children: [cellParagraph],
+                  direction: "ltr",
+                  format: "",
+                  indent: 0,
+                  type: "tablecell",
+                  headerState: cell.tagName.toLowerCase() === 'th' ? 3 : 0, // 3 for header, 0 for normal
+                  version: 1
+                })
+              })
+              
+              if (rowChildren.length > 0) {
+                tableChildren.push({
+                  children: rowChildren,
+                  direction: "ltr",
+                  format: "",
+                  indent: 0,
+                  type: "tablerow",
+                  version: 1
+                })
+              }
+            })
+            
+            if (tableChildren.length > 0) {
+              children.push({
+                children: tableChildren,
+                direction: "ltr",
+                format: "",
+                indent: 0,
+                type: "table",
+                version: 1
+              })
+            }
+          }
+        } else if (tagName === 'ul' || tagName === 'ol') {
+          // Handle list parsing with nested list support
+          const processListItem = (item: HTMLElement): any => {
+            const itemTextNodes: any[] = []
+            const nestedLists: any[] = []
+            
+            // Process child nodes to separate text content from nested lists
+            Array.from(item.childNodes).forEach((child) => {
+              if (child.nodeType === Node.TEXT_NODE) {
+                const text = child.textContent?.trim()
+                if (text) {
+                  itemTextNodes.push({
+                    detail: 0,
+                    format: 0,
+                    mode: "normal",
+                    style: "",
+                    text: text,
+                    type: "text",
+                    version: 1
+                  })
+                }
+              } else if (child.nodeType === Node.ELEMENT_NODE) {
+                const childEl = child as HTMLElement
+                const childTag = childEl.tagName.toLowerCase()
+                
+                if (childTag === 'ul' || childTag === 'ol') {
+                  // Found nested list - process it recursively
+                  const nestedItems = Array.from(childEl.querySelectorAll(':scope > li'))
+                  const nestedListChildren: any[] = []
+                  
+                  nestedItems.forEach((nestedItem) => {
+                    const nestedTextNodes = parseInlineElements(nestedItem as HTMLElement)
+                    
+                    // Create paragraph for nested item
+                    const nestedParagraph = {
+                      children: nestedTextNodes.length > 0 ? nestedTextNodes : [{
+                        detail: 0,
+                        format: 0,
+                        mode: "normal", 
+                        style: "",
+                        text: "",
+                        type: "text",
+                        version: 1
+                      }],
+                      direction: "ltr",
+                      format: "",
+                      indent: 0,
+                      type: "paragraph",
+                      version: 1
+                    }
+                    
+                    nestedListChildren.push({
+                      children: [nestedParagraph],
+                      direction: "ltr",
+                      format: "",
+                      indent: 0,
+                      type: "listitem",
+                      version: 1
+                    })
+                  })
+                  
+                  if (nestedListChildren.length > 0) {
+                    nestedLists.push({
+                      children: nestedListChildren,
+                      direction: "ltr",
+                      format: "",
+                      indent: 0,
+                      listType: childTag === 'ol' ? 'number' : 'bullet',
+                      start: childTag === 'ol' ? 1 : null,
+                      tag: childTag,
+                      type: "list",
+                      version: 1
+                    })
+                  }
+                } else {
+                  // Process other inline elements
+                  const inlineNodes = parseInlineElements(childEl)
+                  itemTextNodes.push(...inlineNodes)
+                }
+              }
+            })
+            
+            // Create the main paragraph for this list item
+            const itemParagraph = {
+              children: itemTextNodes.length > 0 ? itemTextNodes : [{
+                detail: 0,
+                format: 0,
+                mode: "normal",
+                style: "",
+                text: "",
+                type: "text",
+                version: 1
+              }],
+              direction: "ltr",
+              format: "",
+              indent: 0,
+              type: "paragraph",
+              version: 1
+            }
+            
+            // Combine paragraph and nested lists
+            const itemChildren = [itemParagraph, ...nestedLists]
+            
+            return {
+              children: itemChildren,
+              direction: "ltr",
+              format: "",
+              indent: 0,
+              type: "listitem",
+              version: 1
+            }
+          }
+          
+          // Process only direct li children (not nested ones)
+          const directListItems = Array.from(el.querySelectorAll(':scope > li'))
+          if (directListItems.length > 0) {
+            const listChildren: any[] = []
+            
+            directListItems.forEach((item) => {
+              const listItem = processListItem(item as HTMLElement)
+              listChildren.push(listItem)
+            })
+            
+            if (listChildren.length > 0) {
+              children.push({
+                children: listChildren,
+                direction: "ltr",
+                format: "",
+                indent: 0,
+                listType: tagName === 'ol' ? 'number' : 'bullet',
+                start: tagName === 'ol' ? 1 : null,
+                tag: tagName,
+                type: "list",
+                version: 1
+              })
+            }
+          }
+        } else if (tagName === 'img') {
+          // Handle images with proper ImageNode
+          const src = el.getAttribute('src') || ''
+          const alt = el.getAttribute('alt') || ''
+          const width = el.getAttribute('width')
+          const height = el.getAttribute('height')
+          
+          // Create proper image node
+          children.push({
+            type: 'image',
+            version: 1,
+            src: src,
+            altText: alt,
+            width: width ? parseInt(width) : 0,
+            height: height ? parseInt(height) : 0,
+            maxWidth: 800,
+            showCaption: false
+          })
+        } else if (tagName === 'br') {
+          // Handle line breaks by creating empty paragraph
+          children.push({
+            children: [],
+            direction: "ltr",
+            format: "",
+            indent: 0,
+            type: "paragraph",
+            version: 1
+          })
+        } else {
+          // Default to paragraph for other elements, but preserve HTML if it contains tags
+          if (el.children.length > 0) {
+            // Element has child elements - preserve as HTML
+            const htmlContent = el.outerHTML || el.innerHTML || ''
+            if (htmlContent.trim()) {
+              children.push({
+                children: [{
+                  detail: 0,
+                  format: 0,
+                  mode: "normal",
+                  style: "",
+                  text: htmlContent,
+                  type: "text",
+                  version: 1
+                }],
+                direction: "ltr",
+                format: "",
+                indent: 0,
+                type: "paragraph",
+                version: 1
+              })
+            }
+          } else {
+            // Element only has text content
+            const text = el.textContent || ''
+            if (text.trim()) {
+              children.push({
+                children: [{
+                  detail: 0,
+                  format: 0,
+                  mode: "normal",
+                  style: "",
+                  text: text,
+                  type: "text",
+                  version: 1
+                }],
+                direction: "ltr",
+                format: "",
+                indent: 0,
+                type: "paragraph",
+                version: 1
+              })
+            }
+          }
         }
       }
+    } catch (error) {
+      console.error('🔍 Error processing element:', element, error)
+      // Skip problematic elements instead of crashing
     }
   })
   
   // If no children, add an empty paragraph
   if (children.length === 0) {
+    console.log('🔍 No children found, adding empty paragraph')
     children.push({
       children: [],
       direction: "ltr",
@@ -625,7 +705,9 @@ export function htmlToSerializedState(html: string): SerializedEditorState {
     })
   }
   
-  return {
+  console.log('🔍 Final serialized state children:', children)
+  
+  const result = {
     root: {
       children: children,
       direction: "ltr",
@@ -635,12 +717,28 @@ export function htmlToSerializedState(html: string): SerializedEditorState {
       version: 1
     }
   } as any
+  
+  console.log('🔍 === HTML TO SERIALIZED STATE RESULT ===', JSON.stringify(result, null, 2))
+  return result
 }
 
 // Helper function to convert text node with formatting to HTML with inline styles
 function textNodeToHtml(node: any): string {
   let text = node.text || ''
   const format = node.format || 0
+  
+  // DEBUG: Log text node processing
+  console.log('🎨 textNodeToHtml DEBUG:', {
+    originalText: text,
+    format: format,
+    formatBinary: format.toString(2),
+    formatBreakdown: {
+      bold: !!(format & 1),
+      italic: !!(format & 2), 
+      strikethrough: !!(format & 4),
+      underline: !!(format & 8)
+    }
+  })
   
   // Check if text contains HTML elements that should be preserved
   // This allows users to insert raw HTML like <img> tags
@@ -649,25 +747,43 @@ function textNodeToHtml(node: any): string {
   if (hasHtmlTags) {
     // If text contains HTML tags, return it as-is to preserve the HTML
     // This allows things like <img src="..."> to work
+    console.log('🎨 Preserving HTML tags in text:', text)
     return text
   }
   
   // Apply formatting based on format bitmask with inline styles
-  if (format & 1) text = `<strong style="font-weight: bold;">${text}</strong>` // bold
-  if (format & 2) text = `<em style="font-style: italic;">${text}</em>` // italic
-  if (format & 4) text = `<s style="text-decoration: line-through;">${text}</s>` // strikethrough
-  if (format & 8) text = `<u style="text-decoration: underline;">${text}</u>` // underline
+  if (format & 1) {
+    text = `<strong style="font-weight: bold;">${text}</strong>` // bold
+    console.log('🎨 Applied BOLD formatting:', text)
+  }
+  if (format & 2) {
+    text = `<em style="font-style: italic;">${text}</em>` // italic
+    console.log('🎨 Applied ITALIC formatting:', text)
+  }
+  if (format & 4) {
+    text = `<s style="text-decoration: line-through;">${text}</s>` // strikethrough
+    console.log('🎨 Applied STRIKETHROUGH formatting:', text)
+  }
+  if (format & 8) {
+    text = `<u style="text-decoration: underline;">${text}</u>` // underline
+    console.log('🎨 Applied UNDERLINE formatting:', text)
+  }
   
+  console.log('🎨 Final formatted text:', text)
   return text
 }
 
 // Convierte el estado del editor a HTML con estilos inline
 export function serializedStateToHtml(serializedState: SerializedEditorState): string {
   try {
+    console.log('🎨 === SERIALIZED STATE TO HTML ===', JSON.stringify(serializedState, null, 2))
     let html = ''
     serializedState.root.children.forEach((child: any) => {
+      console.log('🎨 Processing child node:', child)
       if (child.type === 'paragraph') {
+        console.log('🎨 Paragraph children:', child.children)
         const content = child.children.map((c: any) => textNodeToHtml(c)).join('')
+        console.log('🎨 Paragraph content after formatting:', content)
         const alignment = child.format || ''
         let alignmentStyle = ''
         if (alignment === 'center') alignmentStyle = ' text-align: center;'

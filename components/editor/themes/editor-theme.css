@@ -436,6 +436,16 @@
    PARAGRAPH AND BLOCK STYLES
    ======================================== */
 
+.EditorTheme__ltr {
+  text-align: left;
+  direction: ltr;
+}
+
+.EditorTheme__rtl {
+  text-align: right;
+  direction: rtl;
+}
+
 .EditorTheme__paragraph {
   margin: 0 0 1rem 0;
   line-height: 1.75;

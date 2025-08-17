@@ -4,12 +4,7 @@ import { useCallback, useState, useEffect } from "react"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { $createHeadingNode, $createQuoteNode, HeadingTagType } from "@lexical/rich-text"
 import { $createCodeNode, $isCodeNode } from "@lexical/code"
-import { 
-  $createTableNode, 
-  $createTableRowNode, 
-  $createTableCellNode,
-  INSERT_TABLE_COMMAND
-} from "@lexical/table"
+// REMOVED: Table imports
 import {
   $createListNode,
   $createListItemNode,
@@ -23,8 +18,7 @@ import {
   $isRangeSelection,
   $isTextNode,
   FORMAT_TEXT_COMMAND,
-  INDENT_CONTENT_COMMAND,
-  OUTDENT_CONTENT_COMMAND,
+  // REMOVED: Indent commands
   FORMAT_ELEMENT_COMMAND,
   SELECTION_CHANGE_COMMAND,
   COMMAND_PRIORITY_CRITICAL,
@@ -44,13 +38,12 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  Indent,
-  Outdent,
+  // REMOVED: Indent icons
   Code,
   FileCode,
   List,
   ListOrdered,
-  Table,
+  // REMOVED: Table icon
 } from "lucide-react"
 
 interface ToolbarProps {
@@ -116,8 +109,14 @@ export function Toolbar({ onHtmlSourceClick }: ToolbarProps) {
       }
       
       // Get element format (alignment)
-      const elementFormat = element.getFormatType() || 'left'
-      setAlignment(elementFormat)
+      const elementFormat = element.getFormat()
+      const alignmentMap: { [key: number]: string } = {
+        0: 'left',
+        1: 'center', 
+        2: 'right',
+        3: 'justify'
+      }
+      setAlignment(alignmentMap[elementFormat] || 'left')
     }
   }, [])
   
@@ -172,25 +171,13 @@ export function Toolbar({ onHtmlSourceClick }: ToolbarProps) {
     })
   }, [editor])
 
-  const indentContent = useCallback(() => {
-    editor.dispatchCommand(INDENT_CONTENT_COMMAND, undefined)
-  }, [editor])
-
-  const outdentContent = useCallback(() => {
-    editor.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined)
-  }, [editor])
+  // REMOVED: Indent functions
 
   const formatAlignment = useCallback((alignment: 'left' | 'center' | 'right') => {
     editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, alignment)
   }, [editor])
 
-  const insertTable = useCallback(() => {
-    editor.dispatchCommand(INSERT_TABLE_COMMAND, { 
-      columns: '3', 
-      rows: '3',
-      includeHeaders: true
-    })
-  }, [editor])
+  // REMOVED: Insert table function
 
   const insertBulletList = useCallback(() => {
     editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined)
@@ -362,43 +349,10 @@ export function Toolbar({ onHtmlSourceClick }: ToolbarProps) {
         >
           <ListOrdered className="h-4 w-4" />
         </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={insertTable}
-          className="h-8 w-8 p-0"
-          title="Insert Table"
-        >
-          <Table className="h-4 w-4" />
-        </Button>
+        {/* REMOVED: Table button */}
       </div>
 
-      <Separator orientation="vertical" className="h-6" />
-
-      {/* INDENTATION GROUP */}
-      <div className="flex items-center gap-1 px-1">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={outdentContent}
-          className="h-8 w-8 p-0"
-          title="Decrease Indent"
-        >
-          <Outdent className="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={indentContent}
-          className="h-8 w-8 p-0"
-          title="Increase Indent"
-        >
-          <Indent className="h-4 w-4" />
-        </Button>
-      </div>
+      {/* REMOVED: Indentation group */}
 
       <Separator orientation="vertical" className="h-6" />
 

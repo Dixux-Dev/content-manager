@@ -168,6 +168,11 @@ export class ImageNode extends DecoratorNode<React.ReactElement> {
   }
 
   decorate(): React.ReactElement {
+    // Si no hay src válido, no renderizar la imagen
+    if (!this.__src || this.__src.trim() === '') {
+      return <div className="text-gray-500 italic">Imagen sin fuente válida</div>
+    }
+
     return (
       <img
         src={this.__src}

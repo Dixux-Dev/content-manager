@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react"
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin"
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin"
-import { TablePlugin } from "@lexical/react/LexicalTablePlugin"
+// REMOVED: Table plugin import
 import { ListPlugin } from "@lexical/react/LexicalListPlugin"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { $generateHtmlFromNodes } from "@lexical/html"
@@ -156,7 +156,7 @@ export function Plugins({ placeholder = "Start typing ...", onSerializedChange }
             // Use a Set for faster lookup
             const validTypes = new Set([
               'paragraph', 'heading', 'quote', 'list', 
-              'listitem', 'code', 'table', 'image'
+              'listitem', 'code', 'image'
             ])
             return validTypes.has(type)
           })
@@ -281,8 +281,7 @@ export function Plugins({ placeholder = "Start typing ...", onSerializedChange }
             
             {/* Code highlighting is handled by registerCodeHighlighting */}
             
-            {/* Table plugin for table support */}
-            <TablePlugin hasCellMerge={true} hasCellBackgroundColor={true} />
+            {/* REMOVED: Table plugin */}
             
             {/* List plugin for ordered and unordered lists */}
             <ListPlugin />

@@ -81,7 +81,7 @@ SOLO HTML PURO - Prohibido cualquier formato Markdown:
 - NO uses > para citas, usa <blockquote>
 
 IMPORTANTE - NUNCA ENVUELVAS EL HTML:
-- NO envuelvas el contenido en ```html ... ```
+- NO envuelvas el contenido en \`\`\`html ... \`\`\`
 - NO uses bloques de código markdown
 - NO agregues prefijos como "html:" o similares
 - DEVUELVE SOLO el HTML directamente

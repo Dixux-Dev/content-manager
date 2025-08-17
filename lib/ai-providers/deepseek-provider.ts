@@ -120,8 +120,8 @@ export class DeepSeekProvider implements AIProviderInterface {
         console.error(`Error in ${context} (attempt ${attempt + 1}/${this.retryConfig.maxRetries + 1}):`, {
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
-          code: error?.code,
-          cause: error?.cause,
+          code: (error as any)?.code,
+          cause: (error as any)?.cause,
           retryable: this.isRetryableError(error)
         })
 

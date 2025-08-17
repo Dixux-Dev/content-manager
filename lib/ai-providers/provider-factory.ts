@@ -6,7 +6,8 @@ import {
   AIProviderConfig,
   AIProviderError,
   ContentGenerationParams,
-  AIGenerationResponse
+  AIGenerationResponse,
+  AIProviderHealthCheck
 } from './types'
 
 export interface ProviderFactoryConfig {
@@ -253,7 +254,7 @@ ${params.extraInstructions ? `Instrucciones adicionales: ${params.extraInstructi
         results[name] = {
           ...health,
           available: true,
-          config: provider.getConnectionStats?.() || {}
+          config: (provider as any).getConnectionStats?.() || {}
         }
       } catch (error) {
         results[name] = {
