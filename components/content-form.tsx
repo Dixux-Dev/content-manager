@@ -1,12 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { categories } from "@/data/mock-data"
+import { profileEvents } from "@/lib/profile-events"
+import { MultiCategorySelector } from "@/components/multi-category-selector"
+import { Editor } from "@/components/editor/editor"
+import { SerializedEditorState } from "lexical"
+import { serializedStateToText, isEditorEmpty, htmlToSerializedState, serializedStateToHtml } from "@/lib/editor-utils"
+import { simpleSerializedStateToHtml } from "@/lib/simple-converter"
 import { Wand2, Save } from "lucide-react"
 
 export function ContentForm() {
@@ -14,8 +19,8 @@ export function ContentForm() {
   const [profiles, setProfiles] = useState([])
   const [formData, setFormData] = useState({
     title: "",
-    type: "SNIPPET",
-    category: "",
+    type: "PAGE",
+    categories: [] as string[],
     profileId: "",
     wordCount: "",
     extraInstructions: ""
@@ -24,10 +29,40 @@ export function ContentForm() {
   const [generatedContent, setGeneratedContent] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [generationStats, setGenerationStats] = useState<{
+    wordCount?: number
+    issues?: string[]
+    isValid?: boolean
+  }>({})
+  const [generationTime, setGenerationTime] = useState<number>(0)
+  const [isTimerRunning, setIsTimerRunning] = useState(false)
+  const [extraInstructionsEditorState, setExtraInstructionsEditorState] = useState<SerializedEditorState | undefined>()
+  const [contentEditorState, setContentEditorState] = useState<SerializedEditorState | undefined>()
+  const [contentKey, setContentKey] = useState<string>('empty')
 
   // Cargar perfiles desde API
   useEffect(() => {
     fetchProfiles()
+
+    // Suscribirse a eventos de perfiles para sincronización
+    const unsubscribeCreated = profileEvents.subscribe('profile-created', () => {
+      fetchProfiles() // Recargar lista cuando se crea un perfil
+    })
+
+    const unsubscribeUpdated = profileEvents.subscribe('profile-updated', () => {
+      fetchProfiles() // Recargar lista cuando se actualiza un perfil
+    })
+
+    const unsubscribeDeleted = profileEvents.subscribe('profile-deleted', () => {
+      fetchProfiles() // Recargar lista cuando se elimina un perfil
+    })
+
+    // Cleanup - desuscribirse cuando el componente se desmonta
+    return () => {
+      unsubscribeCreated()
+      unsubscribeUpdated()
+      unsubscribeDeleted()
+    }
   }, [])
 
   const fetchProfiles = async () => {
@@ -42,27 +77,143 @@ export function ContentForm() {
     }
   }
 
-  const handleGenerate = async () => {
-    setIsGenerating(true)
-    // Simulación de generación de contenido
-    setTimeout(() => {
-      setGeneratedContent(`<h1>${formData.title}</h1>
-<p>Este es un contenido de ejemplo generado automáticamente basado en el perfil seleccionado.</p>
-<p>El contenido real será generado usando la API de DeepSeek con los parámetros configurados.</p>
-<ul>
-  <li>Tipo: ${formData.type}</li>
-  <li>Categoría: ${formData.category}</li>
-  <li>Palabras: ${formData.wordCount || 'Auto'}</li>
-</ul>`)
-      setIsGenerating(false)
-    }, 2000)
-  }
+  // Timer effect for live time tracking during generation
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null
+    
+    if (isTimerRunning) {
+      const startTime = Date.now()
+      interval = setInterval(() => {
+        setGenerationTime(Date.now() - startTime)
+      }, 100) // Update every 100ms for smooth animation
+    }
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval)
+      }
+    }
+  }, [isTimerRunning])
 
-  const handleSave = async () => {
-    if (!session?.user || !generatedContent) return
+  const handleGenerate = useCallback(async () => {
+    setIsGenerating(true)
+    setGenerationStats({})
+    setGenerationTime(0)
+    setIsTimerRunning(true)
+    const startTime = Date.now()
+    
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          type: formData.type,
+          categories: formData.categories,
+          profileId: formData.profileId,
+          wordCount: formData.wordCount,
+          extraInstructions: formData.extraInstructions
+        })
+      })
+
+      const endTime = Date.now()
+      setIsTimerRunning(false)
+      setGenerationTime(endTime - startTime)
+
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Process the content and set states in the correct sequence
+        if (data.content && data.content.trim()) {
+          console.log('=== SETTING GENERATED CONTENT ===')
+          console.log('Generated content:', data.content)
+          
+          // First set the HTML content
+          setGeneratedContent(data.content)
+          
+          // Convert HTML to Lexical state with validation
+          try {
+            const lexicalState = htmlToSerializedState(data.content)
+            console.log('=== CONVERTED TO LEXICAL STATE ===')
+            console.log('Lexical state:', JSON.stringify(lexicalState, null, 2))
+            
+            // Set the editor state
+            setContentEditorState(lexicalState)
+            
+            // Update the key to ensure fresh editor mounting
+            const newKey = `generated-${Date.now()}`
+            console.log('=== SETTING NEW CONTENT KEY ===', newKey)
+            setContentKey(newKey)
+          } catch (error) {
+            console.error('Error converting HTML to Lexical state:', error)
+            // Fallback: just set the content key without lexical state
+            setContentEditorState(undefined)
+            setContentKey(`generated-fallback-${Date.now()}`)
+          }
+          
+          setGenerationStats({
+            wordCount: data.content.split(/\s+/).length,
+            issues: [],
+            isValid: true
+          })
+        } else {
+          // Handle empty content
+          console.log('=== NO CONTENT GENERATED ===')
+          setGeneratedContent("")
+          setContentEditorState(undefined)
+          setContentKey(`empty-${Date.now()}`)
+          
+          setGenerationStats({
+            wordCount: 0,
+            issues: [],
+            isValid: true
+          })
+        }
+      } else {
+        const error = await response.json()
+        alert(`Error generando contenido: ${error.error || 'Error desconocido'}`)
+      }
+    } catch (error) {
+      console.error('Error generando contenido:', error)
+      alert('Error de conexión al generar contenido')
+    } finally {
+      setIsGenerating(false)
+      setIsTimerRunning(false)
+    }
+  }, [formData])
+
+  // Move useCallback hooks to top level to fix Rules of Hooks violations
+  const handleExtraInstructionsChange = useCallback((state: SerializedEditorState) => {
+    setExtraInstructionsEditorState(state)
+    // Convert the rich text editor content to text for backend compatibility
+    const textContent = serializedStateToText(state)
+    setFormData(prev => ({...prev, extraInstructions: textContent}))
+  }, [])
+
+  const handleContentEditorChange = useCallback((state: SerializedEditorState) => {
+    console.log('=== EDITOR STATE CHANGED ===')
+    console.log('New state:', JSON.stringify(state, null, 2))
+    setContentEditorState(state)
+    // Keep the editor state but don't update generatedContent
+    // The HTML conversion will happen when saving
+  }, [])
+
+  const handleSave = useCallback(async () => {
+    if (!generatedContent && !contentEditorState) {
+      alert('No hay contenido generado para guardar')
+      return
+    }
     
     setIsSaving(true)
     try {
+      // Convert editor state to HTML if the content was edited
+      let contentToSave = generatedContent
+      if (contentEditorState) {
+        contentToSave = serializedStateToHtml(contentEditorState)
+      }
+      
       const response = await fetch('/api/content', {
         method: 'POST',
         headers: {
@@ -71,11 +222,11 @@ export function ContentForm() {
         body: JSON.stringify({
           title: formData.title,
           type: formData.type,
-          category: formData.category,
-          content: generatedContent,
+          categories: formData.categories,
+          content: contentToSave,
           profileId: formData.profileId,
           wordCount: formData.wordCount ? parseInt(formData.wordCount) : null,
-          lastEditorId: session.user.id
+          lastEditorId: session?.user?.id || null
         })
       })
 
@@ -84,15 +235,19 @@ export function ContentForm() {
         // Limpiar formulario
         setFormData({
           title: "",
-          type: "SNIPPET",
-          category: "",
+          type: "PAGE",
+          categories: [],
           profileId: "",
           wordCount: "",
           extraInstructions: ""
         })
         setGeneratedContent("")
+        setContentEditorState(undefined)
+        setExtraInstructionsEditorState(undefined)
+        setContentKey('empty')
       } else {
-        alert('Error guardando contenido')
+        const errorData = await response.json()
+        alert(`Error guardando contenido: ${errorData.error || 'Error desconocido'}`)
       }
     } catch (error) {
       console.error('Error guardando contenido:', error)
@@ -100,7 +255,7 @@ export function ContentForm() {
     } finally {
       setIsSaving(false)
     }
-  }
+  }, [generatedContent, contentEditorState, formData, session?.user?.id])
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -127,24 +282,18 @@ export function ContentForm() {
               value={formData.type}
               onChange={(e) => setFormData({...formData, type: e.target.value})}
             >
-              <option value="SNIPPET">Snippet</option>
               <option value="PAGE">Página</option>
+              <option value="SNIPPET">Snippet</option>
             </select>
           </div>
 
           <div>
-            <Label htmlFor="category">Categoría</Label>
-            <select
-              id="category"
-              className="w-full px-3 py-2 border rounded-md"
-              value={formData.category}
-              onChange={(e) => setFormData({...formData, category: e.target.value})}
-            >
-              <option value="">Selecciona una categoría</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
+            <MultiCategorySelector
+              value={formData.categories}
+              onChange={(value) => setFormData({...formData, categories: value})}
+              placeholder="Buscar o crear categorías..."
+              required
+            />
           </div>
 
           <div>
@@ -179,20 +328,20 @@ export function ContentForm() {
 
           <div>
             <Label htmlFor="extra">Instrucciones Adicionales</Label>
-            <textarea
-              id="extra"
-              className="w-full px-3 py-2 border rounded-md"
-              rows={3}
-              value={formData.extraInstructions}
-              onChange={(e) => setFormData({...formData, extraInstructions: e.target.value})}
-              placeholder="Agrega instrucciones específicas..."
-            />
+            <div className="mt-2">
+              <Editor
+                editorSerializedState={extraInstructionsEditorState}
+                onSerializedChange={handleExtraInstructionsChange}
+                initialValue={formData.extraInstructions}
+                placeholder="Agrega instrucciones específicas..."
+              />
+            </div>
           </div>
 
           <Button 
             onClick={handleGenerate} 
             className="w-full"
-            disabled={!formData.title || !formData.category || !formData.profileId || isGenerating}
+            disabled={!formData.title || formData.categories.length === 0 || !formData.profileId || isGenerating}
           >
             <Wand2 className="mr-2 h-4 w-4" />
             {isGenerating ? "Generando..." : "Generar Contenido"}
@@ -205,16 +354,65 @@ export function ContentForm() {
           <CardTitle>Vista Previa del Contenido</CardTitle>
         </CardHeader>
         <CardContent>
-          {generatedContent ? (
+          {isGenerating ? (
+            // Loading state during content generation
+            <div className="space-y-4">
+              <div className="mb-4">
+                <Label>Generando Contenido...</Label>
+                <div className="mt-2 relative">
+                  {/* Loading overlay for the editor */}
+                  <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-md border">
+                    <div className="flex flex-col items-center space-y-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <p className="text-sm text-gray-600">Generando contenido...</p>
+                    </div>
+                  </div>
+                  <Editor
+                    editorSerializedState={undefined}
+                    onSerializedChange={() => {}}
+                    placeholder="El contenido aparecerá aquí..."
+                  />
+                </div>
+              </div>
+              
+              {/* Live time counter during generation */}
+              <div className="bg-blue-50 p-3 rounded-md text-sm border border-blue-200">
+                <div className="flex justify-between items-center">
+                  <span className="text-blue-700 font-medium">⏱️ Tiempo transcurrido:</span>
+                  <span className="text-blue-800 font-mono">{(generationTime / 1000).toFixed(1)}s</span>
+                </div>
+              </div>
+            </div>
+          ) : generatedContent ? (
             <>
-              <div 
-                className="prose prose-sm max-w-none mb-4 p-4 border rounded-md min-h-[300px]"
-                dangerouslySetInnerHTML={{ __html: generatedContent }}
-              />
-              <Button onClick={handleSave} className="w-full">
-                <Save className="mr-2 h-4 w-4" />
-                Guardar Contenido
-              </Button>
+              <div className="mb-4">
+                <Label>Vista Previa del Contenido (Editable)</Label>
+                <div className="mt-2">
+                  <Editor
+                    key={contentKey}
+                    editorSerializedState={contentEditorState}
+                    onSerializedChange={handleContentEditorChange}
+                    placeholder="El contenido generado aparecerá aquí para editar..."
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Generation time display (final) */}
+                {generationTime > 0 && (
+                  <div className="bg-green-50 p-3 rounded-md text-sm border border-green-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-green-700 font-medium">✅ Generación completada en:</span>
+                      <span className="text-green-800 font-mono">{(generationTime / 1000).toFixed(2)}s</span>
+                    </div>
+                  </div>
+                )}
+                
+                <Button onClick={handleSave} className="w-full" disabled={isSaving}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {isSaving ? 'Guardando...' : 'Guardar Contenido'}
+                </Button>
+              </div>
             </>
           ) : (
             <div className="text-center text-gray-500 py-12">
