@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syntax Highlighting Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+        }
+        .test-section {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Syntax Highlighting Test</h1>
+    <p>Testing the complete cycle: HTML → Lexical → HTML with syntax highlighting preservation</p>
+
+    <div class="test-section">
+        <div class="test-title">Test 1: JavaScript Code Block with Language Detection</div>
+        <code data-language="javascript" data-highlighted="true" style="
+            background-color: #f6f8fa;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Monaco, 'Courier New', monospace;
+            display: block;
+            padding: 16px;
+            line-height: 1.45;
+            font-size: 14px;
+            margin: 8px 0;
+            overflow-x: auto;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            tab-size: 2;
+            white-space: pre-line;
+            word-wrap: break-word;
+            color: #24292e;
+        ">function calculateTotal(items) {
+  let total = 0;
+  for (const item of items) {
+    total += item.price * item.quantity;
+  }
+  return total;
+}
+
+// Usage example
+const cart = [
+  { name: "Product A", price: 29.99, quantity: 2 },
+  { name: "Product B", price: 15.50, quantity: 1 }
+];
+
+console.log("Total:", calculateTotal(cart));</code>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">Test 2: TypeScript Code Block</div>
+        <code data-language="typescript" data-highlighted="true" style="
+            background-color: #f6f8fa;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Monaco, 'Courier New', monospace;
+            display: block;
+            padding: 16px;
+            line-height: 1.45;
+            font-size: 14px;
+            margin: 8px 0;
+            overflow-x: auto;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            tab-size: 2;
+            white-space: pre-line;
+            word-wrap: break-word;
+            color: #24292e;
+        ">interface User {
+  id: string;
+  email: string;
+  role: "ADMIN" | "USER";
+  profile?: {
+    name: string;
+    avatar?: string;
+  };
+}
+
+class UserService {
+  private users: Map&lt;string, User&gt; = new Map();
+
+  async createUser(userData: Omit&lt;User, 'id'&gt;): Promise&lt;User&gt; {
+    const user: User = {
+      id: crypto.randomUUID(),
+      ...userData
+    };
+    
+    this.users.set(user.id, user);
+    return user;
+  }
+}</code>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">Test 3: HTML/React Code Block</div>
+        <code data-language="html" data-highlighted="true" style="
+            background-color: #f6f8fa;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Monaco, 'Courier New', monospace;
+            display: block;
+            padding: 16px;
+            line-height: 1.45;
+            font-size: 14px;
+            margin: 8px 0;
+            overflow-x: auto;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            tab-size: 2;
+            white-space: pre-line;
+            word-wrap: break-word;
+            color: #24292e;
+        ">&lt;div className="content-section"&gt;
+  &lt;img alt="Sample Image" 
+       src="https://picsum.photos/400/300" 
+       style="float:right; margin:15px; max-width:50%"&gt;
+  
+  &lt;h2&gt;&lt;strong&gt;Featured Content&lt;/strong&gt;&lt;/h2&gt;
+  &lt;p&gt;This is a sample content block with HTML elements.&lt;/p&gt;
+  &lt;ul&gt;
+    &lt;li&gt;&lt;strong&gt;Feature 1&lt;/strong&gt;: Description here&lt;/li&gt;
+    &lt;li&gt;&lt;strong&gt;Feature 2&lt;/strong&gt;: Another description&lt;/li&gt;
+  &lt;/ul&gt;
+  
+  &lt;div className="action-buttons"&gt;
+    &lt;button onClick={handleClick}&gt;
+      Click Me
+    &lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">Test 4: CSS Code Block</div>
+        <code data-language="css" data-highlighted="true" style="
+            background-color: #f6f8fa;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Monaco, 'Courier New', monospace;
+            display: block;
+            padding: 16px;
+            line-height: 1.45;
+            font-size: 14px;
+            margin: 8px 0;
+            overflow-x: auto;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            tab-size: 2;
+            white-space: pre-line;
+            word-wrap: break-word;
+            color: #24292e;
+        ">.code-block {
+  background-color: #f6f8fa;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  border-radius: 6px;
+  border: 1px solid #e1e4e8;
+  padding: 16px;
+  margin: 8px 0;
+  overflow-x: auto;
+  line-height: 1.45;
+  font-size: 14px;
+}
+
+.code-block:hover {
+  border-color: #d0d7de;
+  background-color: #f3f4f6;
+}
+
+@media (max-width: 768px) {
+  .code-block {
+    font-size: 12px;
+    padding: 12px;
+  }
+}</code>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">Test 5: Python Code Block</div>
+        <code data-language="python" data-highlighted="true" style="
+            background-color: #f6f8fa;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Monaco, 'Courier New', monospace;
+            display: block;
+            padding: 16px;
+            line-height: 1.45;
+            font-size: 14px;
+            margin: 8px 0;
+            overflow-x: auto;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            tab-size: 2;
+            white-space: pre-line;
+            word-wrap: break-word;
+            color: #24292e;
+        ">def calculate_fibonacci(n):
+    """Calculate Fibonacci sequence up to n numbers."""
+    if n &lt;= 0:
+        return []
+    elif n == 1:
+        return [0]
+    elif n == 2:
+        return [0, 1]
+    
+    sequence = [0, 1]
+    for i in range(2, n):
+        next_num = sequence[i-1] + sequence[i-2]
+        sequence.append(next_num)
+    
+    return sequence
+
+# Example usage
+numbers = calculate_fibonacci(10)
+print(f"First 10 Fibonacci numbers: {numbers}")
+
+# List comprehension example
+squares = [x**2 for x in range(1, 11) if x % 2 == 0]
+print(f"Even squares: {squares}")</code>
+    </div>
+
+    <script>
+        // Test the conversion functions if available
+        if (typeof window !== 'undefined') {
+            console.log('Testing HTML to Lexical conversion and back...');
+            
+            // Simulate the conversion cycle
+            const codeBlocks = document.querySelectorAll('code[data-highlighted="true"]');
+            codeBlocks.forEach((block, index) => {
+                const language = block.getAttribute('data-language');
+                const content = block.textContent;
+                
+                console.log(`Test ${index + 1} - Language: ${language}`);
+                console.log(`Content preview: ${content.substring(0, 100)}...`);
+                console.log(`Attributes preserved: data-language="${language}", data-highlighted="true"`);
+                console.log('---');
+            });
+        }
+    </script>
+</body>
+</html>

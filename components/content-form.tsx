@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { profileEvents } from "@/lib/profile-events"
 import { MultiCategorySelector } from "@/components/multi-category-selector"
 import { Editor } from "@/components/editor/editor"
+import { StyledContent } from "@/components/editor/styled-content"
 import { SerializedEditorState } from "lexical"
 import { serializedStateToText, isEditorEmpty, htmlToSerializedState, serializedStateToHtml } from "@/lib/editor-utils"
 import { simpleSerializedStateToHtml } from "@/lib/simple-converter"
@@ -125,33 +126,24 @@ export function ContentForm() {
       if (response.ok) {
         const data = await response.json()
         
-        // Process the content and set states in the correct sequence
+        // Process the content and set states for immediate proper rendering
         if (data.content && data.content.trim()) {
           console.log('=== SETTING GENERATED CONTENT ===')
           console.log('Generated content:', data.content)
           
-          // First set the HTML content
+          // Set the HTML content for saving purposes
           setGeneratedContent(data.content)
           
-          // Convert HTML to Lexical state with validation
-          try {
-            const lexicalState = htmlToSerializedState(data.content)
-            console.log('=== CONVERTED TO LEXICAL STATE ===')
-            console.log('Lexical state:', JSON.stringify(lexicalState, null, 2))
-            
-            // Set the editor state
-            setContentEditorState(lexicalState)
-            
-            // Update the key to ensure fresh editor mounting
+          // Clear editor state and force re-mount for fresh styling
+          setContentEditorState(undefined)
+          
+          // Use timeout to ensure state is cleared before setting new key
+          setTimeout(() => {
+            // Update the key to force fresh editor mounting with proper styling
             const newKey = `generated-${Date.now()}`
             console.log('=== SETTING NEW CONTENT KEY ===', newKey)
             setContentKey(newKey)
-          } catch (error) {
-            console.error('Error converting HTML to Lexical state:', error)
-            // Fallback: just set the content key without lexical state
-            setContentEditorState(undefined)
-            setContentKey(`generated-fallback-${Date.now()}`)
-          }
+          }, 50)
           
           setGenerationStats({
             wordCount: data.content.split(/\s+/).length,
@@ -195,9 +187,12 @@ export function ContentForm() {
   const handleContentEditorChange = useCallback((state: SerializedEditorState) => {
     console.log('=== EDITOR STATE CHANGED ===')
     console.log('New state:', JSON.stringify(state, null, 2))
+    
+    // Always update the editor state when user makes changes
     setContentEditorState(state)
-    // Keep the editor state but don't update generatedContent
-    // The HTML conversion will happen when saving
+    
+    // No need to update generatedContent here - keep original for reference
+    // The conversion to HTML will happen during save
   }, [])
 
   const handleSave = useCallback(async () => {
@@ -208,10 +203,22 @@ export function ContentForm() {
     
     setIsSaving(true)
     try {
-      // Convert editor state to HTML if the content was edited
-      let contentToSave = generatedContent
-      if (contentEditorState) {
+      // FIXED: Always use the latest editor state if available, fallback to generated content
+      let contentToSave: string
+      if (contentEditorState && !isEditorEmpty(contentEditorState)) {
+        // User has edited or editor has valid content - use the current editor state
         contentToSave = serializedStateToHtml(contentEditorState)
+        console.log('=== SAVING EDITED CONTENT ===')
+        console.log('Using contentEditorState:', JSON.stringify(contentEditorState, null, 2))
+      } else if (generatedContent && generatedContent.trim()) {
+        // No edits made or empty editor - use original generated content
+        contentToSave = generatedContent
+        console.log('=== SAVING ORIGINAL CONTENT ===')
+        console.log('Using generatedContent:', generatedContent)
+      } else {
+        alert('No hay contenido válido para guardar')
+        setIsSaving(false)
+        return
       }
       
       const response = await fetch('/api/content', {
@@ -388,12 +395,15 @@ export function ContentForm() {
               <div className="mb-4">
                 <Label>Vista Previa del Contenido (Editable)</Label>
                 <div className="mt-2">
-                  <Editor
-                    key={contentKey}
-                    editorSerializedState={contentEditorState}
-                    onSerializedChange={handleContentEditorChange}
-                    placeholder="El contenido generado aparecerá aquí para editar..."
-                  />
+                  <StyledContent>
+                    <Editor
+                      key={contentKey}
+                      editorSerializedState={contentEditorState}
+                      onSerializedChange={handleContentEditorChange}
+                      initialValue={generatedContent}
+                      placeholder="El contenido generado aparecerá aquí para editar..."
+                    />
+                  </StyledContent>
                 </div>
               </div>
               

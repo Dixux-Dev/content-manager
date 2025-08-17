@@ -1,0 +1,509 @@
+.EditorTheme__code {
+  background-color: #f6f8fa;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Monaco, 'Courier New', monospace;
+  display: block;
+  padding: 16px;
+  line-height: 1.45;
+  font-size: 14px;
+  margin: 8px 0;
+  overflow-x: auto;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  tab-size: 2;
+  white-space: pre-wrap;
+  color: #24292e;
+  position: relative;
+}
+
+/* Custom code wrapper for syntax highlighting */
+.custom-code-wrapper {
+  margin: 8px 0;
+}
+
+.custom-code-wrapper pre {
+  margin: 0;
+  background-color: #f6f8fa;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.custom-code-wrapper code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Monaco, 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.45;
+  tab-size: 2;
+}
+
+/* Override Prism.js theme to match GitHub style */
+.custom-code-wrapper .token.comment,
+.custom-code-wrapper .token.prolog,
+.custom-code-wrapper .token.doctype,
+.custom-code-wrapper .token.cdata {
+  color: #6a737d;
+  font-style: italic;
+}
+
+.custom-code-wrapper .token.punctuation {
+  color: #24292e;
+}
+
+.custom-code-wrapper .token.property,
+.custom-code-wrapper .token.tag,
+.custom-code-wrapper .token.boolean,
+.custom-code-wrapper .token.number,
+.custom-code-wrapper .token.constant,
+.custom-code-wrapper .token.symbol,
+.custom-code-wrapper .token.deleted {
+  color: #005cc5;
+}
+
+.custom-code-wrapper .token.selector,
+.custom-code-wrapper .token.attr-name,
+.custom-code-wrapper .token.string,
+.custom-code-wrapper .token.char,
+.custom-code-wrapper .token.builtin,
+.custom-code-wrapper .token.inserted {
+  color: #032f62;
+}
+
+.custom-code-wrapper .token.operator,
+.custom-code-wrapper .token.entity,
+.custom-code-wrapper .token.url,
+.custom-code-wrapper .language-css .token.string,
+.custom-code-wrapper .style .token.string {
+  color: #d73a49;
+}
+
+.custom-code-wrapper .token.atrule,
+.custom-code-wrapper .token.attr-value,
+.custom-code-wrapper .token.keyword {
+  color: #d73a49;
+  font-weight: 600;
+}
+
+.custom-code-wrapper .token.function,
+.custom-code-wrapper .token.class-name {
+  color: #6f42c1;
+}
+
+.custom-code-wrapper .token.regex,
+.custom-code-wrapper .token.important,
+.custom-code-wrapper .token.variable {
+  color: #e36209;
+}
+
+/* Basic syntax highlighting for standard code blocks */
+.EditorTheme__code .keyword {
+  color: #d73a49;
+  font-weight: 600;
+}
+
+.EditorTheme__code .string {
+  color: #032f62;
+}
+
+.EditorTheme__code .comment {
+  color: #6a737d;
+  font-style: italic;
+}
+
+.EditorTheme__code .tag {
+  color: #22863a;
+}
+
+.EditorTheme__code .attribute {
+  color: #6f42c1;
+}
+
+.EditorTheme__code .number {
+  color: #005cc5;
+}
+.EditorTheme__table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  width: 100%;
+  margin: 1rem 0;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.EditorTheme__tableCell {
+  padding: 8px 12px;
+  border: 1px solid #e1e4e8;
+  text-align: left;
+  vertical-align: top;
+  background-color: white;
+  min-width: 80px;
+}
+
+.EditorTheme__tableCellHeader {
+  padding: 8px 12px;
+  border: 1px solid #e1e4e8;
+  text-align: left;
+  vertical-align: top;
+  background-color: #f6f8fa;
+  font-weight: 600;
+  color: #24292e;
+  min-width: 80px;
+}
+
+.EditorTheme__tableRow {
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.EditorTheme__tableRow:last-child {
+  border-bottom: none;
+}
+
+.EditorTheme__table th {
+  background-color: #f6f8fa;
+  font-weight: 600;
+  color: #24292e;
+}
+
+.EditorTheme__table td:hover,
+.EditorTheme__table th:hover {
+  background-color: #f0f3f6;
+}
+
+.EditorTheme__table tr:nth-child(even) td {
+  background-color: #f9f9f9;
+}
+
+.EditorTheme__table tr:nth-child(even) td:hover {
+  background-color: #f0f3f6;
+}
+
+/* List Styling */
+.EditorTheme__list {
+  margin: 1rem 0;
+  padding-left: 0;
+}
+
+.EditorTheme__listOl {
+  list-style-type: decimal;
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.EditorTheme__listUl {
+  list-style-type: disc;
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.EditorTheme__listItem {
+  margin: 0.25rem 0;
+  line-height: 1.6;
+  padding-left: 0.5rem;
+  position: relative;
+}
+
+.EditorTheme__listItemChecked {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.EditorTheme__listItemUnchecked {
+  text-decoration: none;
+  opacity: 1;
+}
+
+.EditorTheme__checklist {
+  list-style: none;
+  margin: 1rem 0;
+  padding-left: 0;
+}
+
+.EditorTheme__checklist .EditorTheme__listItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding-left: 0;
+}
+
+.EditorTheme__checklist .EditorTheme__listItem::before {
+  content: '';
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid #d1d5db;
+  border-radius: 3px;
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+  background-color: white;
+}
+
+.EditorTheme__checklist .EditorTheme__listItemChecked::before {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+  background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='m13.854 3.646-7.5 7.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6 10.293l7.146-7.147a.5.5 0 0 1 .708.708z'/%3e%3c/svg%3e");
+  background-size: 0.75rem;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Nested lists */
+.EditorTheme__listNested {
+  margin: 0.25rem 0 0.25rem 1.5rem;
+}
+
+.EditorTheme__listOlDepth1 {
+  list-style-type: decimal;
+}
+
+.EditorTheme__listOlDepth2 {
+  list-style-type: lower-alpha;
+}
+
+.EditorTheme__listOlDepth3 {
+  list-style-type: lower-roman;
+}
+
+.EditorTheme__listOlDepth4 {
+  list-style-type: decimal;
+}
+
+.EditorTheme__listUlDepth1 {
+  list-style-type: disc;
+}
+
+.EditorTheme__listUlDepth2 {
+  list-style-type: circle;
+}
+
+.EditorTheme__listUlDepth3 {
+  list-style-type: square;
+}
+
+.EditorTheme__listUlDepth4 {
+  list-style-type: disc;
+}
+.EditorTheme__tokenComment {
+  color: slategray;
+}
+.EditorTheme__tokenPunctuation {
+  color: #999;
+}
+.EditorTheme__tokenProperty {
+  color: #905;
+}
+.EditorTheme__tokenSelector {
+  color: #690;
+}
+.EditorTheme__tokenOperator {
+  color: #9a6e3a;
+}
+.EditorTheme__tokenAttr {
+  color: #07a;
+}
+.EditorTheme__tokenVariable {
+  color: #e90;
+}
+.EditorTheme__tokenFunction {
+  color: #dd4a68;
+}
+
+.Collapsible__container {
+  background-color: var(--background);
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.Collapsible__title{
+  padding: 0.25rem;
+  padding-left: 1rem;
+  position: relative;
+  font-weight: bold;
+  outline: none;
+  cursor: pointer;
+  list-style-type: disclosure-closed;
+  list-style-position: inside;
+}
+
+.Collapsible__title p{
+  display: inline-flex;
+}
+.Collapsible__title::marker{
+  color: lightgray;
+}
+.Collapsible__container[open] >.Collapsible__title {
+  list-style-type: disclosure-open;
+}
+
+/* ========================================
+   IMMEDIATE TEXT FORMATTING STYLES
+   ======================================== */
+
+/* Base editor text formatting */
+.EditorTheme__textBold {
+  font-weight: bold;
+}
+
+.EditorTheme__textItalic {
+  font-style: italic;
+}
+
+.EditorTheme__textUnderline {
+  text-decoration: underline;
+}
+
+.EditorTheme__textStrikethrough {
+  text-decoration: line-through;
+}
+
+.EditorTheme__textUnderlineStrikethrough {
+  text-decoration: underline line-through;
+}
+
+.EditorTheme__textSubscript {
+  font-size: 0.8em;
+  vertical-align: sub;
+}
+
+.EditorTheme__textSuperscript {
+  font-size: 0.8em;
+  vertical-align: super;
+}
+
+.EditorTheme__textCode {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Monaco, 'Courier New', monospace;
+  background-color: rgba(175, 184, 193, 0.2);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+}
+
+/* ========================================
+   HEADING STYLES
+   ======================================== */
+
+.EditorTheme__h1 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 0 0 1.5rem 0;
+  letter-spacing: -0.025em;
+  color: #1f2937;
+}
+
+.EditorTheme__h2 {
+  font-size: 1.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0 0 1.25rem 0;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+  color: #1f2937;
+}
+
+.EditorTheme__h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0 0 1rem 0;
+  color: #1f2937;
+}
+
+.EditorTheme__h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 0 0 0.875rem 0;
+  color: #1f2937;
+}
+
+.EditorTheme__h5 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 0 0 0.75rem 0;
+  color: #1f2937;
+}
+
+.EditorTheme__h6 {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 0 0 0.75rem 0;
+  color: #1f2937;
+}
+
+/* ========================================
+   PARAGRAPH AND BLOCK STYLES
+   ======================================== */
+
+.EditorTheme__paragraph {
+  margin: 0 0 1rem 0;
+  line-height: 1.75;
+  color: #374151;
+}
+
+.EditorTheme__quote {
+  margin: 1.5rem 0;
+  border-left: 4px solid #d1d5db;
+  padding-left: 1.5rem;
+  font-style: italic;
+  color: #6b7280;
+}
+
+.EditorTheme__link {
+  color: #3b82f6;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.EditorTheme__link:hover {
+  color: #1d4ed8;
+  text-decoration: none;
+}
+
+/* ========================================
+   CONTENT EDITABLE SPECIFIC STYLING
+   ======================================== */
+
+/* Ensure consistent spacing and typography */
+[contenteditable="true"] {
+  outline: none;
+  padding: 1rem;
+  line-height: 1.6;
+  color: #374151;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+[contenteditable="true"]:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: -2px;
+}
+
+/* Fix for empty state styling */
+[contenteditable="true"]:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  font-style: italic;
+  pointer-events: none;
+}
+
+/* Ensure proper text formatting visibility */
+[contenteditable="true"] strong,
+[contenteditable="true"] .EditorTheme__textBold {
+  font-weight: bold;
+}
+
+[contenteditable="true"] em,
+[contenteditable="true"] .EditorTheme__textItalic {
+  font-style: italic;
+}
+
+[contenteditable="true"] u,
+[contenteditable="true"] .EditorTheme__textUnderline {
+  text-decoration: underline;
+}
+
+[contenteditable="true"] s,
+[contenteditable="true"] .EditorTheme__textStrikethrough {
+  text-decoration: line-through;
+}

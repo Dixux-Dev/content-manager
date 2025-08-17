@@ -30,8 +30,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files (only .env.example should be committed)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # vercel
 .vercel
@@ -39,3 +43,25 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Claude Code documentation and context files
+CONTENT_GENERATION_IMPLEMENTATION.md
+CRUD_TEST.md
+DEEPSEEK_CONFIGURATION.md
+ENV_CONFIGURATION.md
+LOGIN_TEST.md
+PROFILE_SYNCHRONIZATION.md
+PROMPT_SYSTEM_SIMPLIFIED.md
+TEST_AUTH.md
+*.claude.md
+*_TEST.md
+*_CONFIGURATION.md
+*_IMPLEMENTATION.md
+*_SYNCHRONIZATION.md
+# Keep README.md (it's the main project readme)
+!README.md
+
+# Claude Code context
+.claude/
+claude.json
+.claudeignore

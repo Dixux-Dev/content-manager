@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     const { 
       title, 
       type, 
-      category, 
+      categories, 
       content, 
       profileId, 
       wordCount,
@@ -51,22 +51,46 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Validación
-    if (!title || !type || !category || !content || !profileId) {
+    if (!title || !type || !categories || !Array.isArray(categories) || categories.length === 0 || !content || !profileId) {
       return NextResponse.json(
-        { error: 'Faltan campos requeridos' },
+        { error: 'Faltan campos requeridos o las categorías deben ser un array no vacío' },
         { status: 400 }
       )
+    }
+
+    // Verificar que el perfil existe
+    const profile = await prisma.profile.findUnique({
+      where: { id: profileId }
+    })
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: `El perfil con ID ${profileId} no existe` },
+        { status: 400 }
+      )
+    }
+
+    // Verificar que el usuario editor existe (si se proporciona)
+    let validEditor = null
+    if (lastEditorId) {
+      validEditor = await prisma.user.findUnique({
+        where: { id: lastEditorId }
+      })
+
+      if (!validEditor) {
+        console.warn(`Usuario con ID ${lastEditorId} no existe, se guardará sin editor`)
+      }
     }
 
     const newContent = await prisma.content.create({
       data: {
         title,
         type,
-        category,
+        categories,
         content,
         profileId,
         wordCount: wordCount ? parseInt(wordCount) : null,
-        lastEditorId: lastEditorId || null
+        lastEditorId: validEditor ? lastEditorId : null
       },
       include: {
         profile: {
@@ -89,6 +113,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(newContent, { status: 201 })
   } catch (error) {
     console.error('Error creando contenido:', error)
+    
+    // Manejo específico de errores de Prisma
+    if (error instanceof Error) {
+      if (error.message.includes('Foreign key constraint')) {
+        return NextResponse.json(
+          { error: 'Error de relación: Verifique que el perfil y usuario existan' },
+          { status: 400 }
+        )
+      }
+    }
+    
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
@@ -104,7 +139,7 @@ export async function PUT(request: NextRequest) {
       id,
       title, 
       type, 
-      category, 
+      categories, 
       content, 
       profileId, 
       wordCount,
@@ -112,9 +147,9 @@ export async function PUT(request: NextRequest) {
     } = body
 
     // Validación
-    if (!id || !title || !type || !category || !content || !profileId) {
+    if (!id || !title || !type || !categories || !Array.isArray(categories) || categories.length === 0 || !content || !profileId) {
       return NextResponse.json(
-        { error: 'Faltan campos requeridos' },
+        { error: 'Faltan campos requeridos o las categorías deben ser un array no vacío' },
         { status: 400 }
       )
     }
@@ -124,7 +159,7 @@ export async function PUT(request: NextRequest) {
       data: {
         title,
         type,
-        category,
+        categories,
         content,
         profileId,
         wordCount: wordCount ? parseInt(wordCount) : null,

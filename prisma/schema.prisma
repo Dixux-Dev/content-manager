@@ -26,7 +26,7 @@ model Content {
   id          String   @id @default(cuid())
   title       String
   type        ContentType
-  category    String
+  categories  Json @default("[]") // Array de categorías como JSON
   content     String   // HTML o JSON del editor
   wordCount   Int?
   profileId   String
@@ -41,10 +41,7 @@ model Profile {
   id          String   @id @default(cuid())
   name        String
   description String?
-  prompt      String   // Texto maestro
-  tone        String?  // Tono del contenido
-  style       String?  // Estilo de escritura
-  format      String?  // Formato de retorno
+  prompt      String   // Prompt maestro con instrucciones completas
   creatorId   String
   creator     User     @relation("ProfileCreator", fields: [creatorId], references: [id])
   createdAt   DateTime @default(now())

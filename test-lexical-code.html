@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Lexical Code Block Preservation</title>
+    <script>
+        function testLexicalCodeBlockStructure() {
+            console.log('=== TESTING LEXICAL CODE BLOCK STRUCTURE ===');
+            
+            // Simulate the Lexical structure you provided
+            const lexicalCodeHTML = `<code class="EditorTheme__code" spellcheck="false" dir="ltr" style="text-align: start;"><span data-lexical-text="true">&lt;div class="content-section"&gt;</span><br><span data-lexical-text="true">  &lt;img alt="Oil Change in Austin" </span><br><span data-lexical-text="true">       src="https://picsum.photos/400/300?auto=oilchange" </span><br><span data-lexical-text="true">       style="float:right; margin:15px; max-width:50%"&gt;</span><br><span data-lexical-text="true">  </span><br><span data-lexical-text="true">  &lt;h2&gt;&lt;strong&gt;Premium Oil Change Services&lt;/strong&gt;&lt;/h2&gt;</span><br><span data-lexical-text="true">  &lt;p&gt;Extend your engine's life with our precision oil changes...&lt;/p&gt;</span><br><span data-lexical-text="true">  &lt;ul&gt;</span><br><span data-lexical-text="true">    &lt;li&gt;&lt;strong&gt;Full synthetic options&lt;/strong&gt;: For extreme temperatures&lt;/li&gt;</span><br><span data-lexical-text="true">    &lt;li&gt;&lt;strong&gt;Quick service&lt;/strong&gt;: Under 30 minutes&lt;/li&gt;</span><br><span data-lexical-text="true">  &lt;/ul&gt;</span><br><span data-lexical-text="true">  </span><br><span data-lexical-text="true">  &lt;div class="subpage-buttons"&gt;</span><br><span data-lexical-text="true">    &lt;a href="/contact"&gt;</span><br><span data-lexical-text="true">      &lt;span class="fa fa-envelope"&gt;&lt;/span&gt; Schedule in [ND:FocusArea1]</span><br><span data-lexical-text="true">    &lt;/a&gt;</span><br><span data-lexical-text="true">  &lt;/div&gt;</span><br><span data-lexical-text="true">&lt;/div&gt;</span></code>`;
+            
+            console.log('1. Original Lexical HTML structure');
+            console.log('Length:', lexicalCodeHTML.length);
+            
+            // Parse with DOMParser
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(`<div>${lexicalCodeHTML}</div>`, 'text/html');
+            const codeElement = doc.querySelector('code');
+            
+            if (codeElement) {
+                console.log('2. Code element found');
+                
+                // Test our new parsing logic
+                const spans = codeElement.querySelectorAll('span[data-lexical-text="true"]');
+                console.log('3. Found spans with data-lexical-text:', spans.length);
+                
+                if (spans.length > 0) {
+                    const textParts = [];
+                    
+                    // Simulate our new parsing logic
+                    Array.from(codeElement.childNodes).forEach((node) => {
+                        if (node.nodeType === 1) { // Element node
+                            const element = node;
+                            if (element.tagName.toLowerCase() === 'span' && element.getAttribute('data-lexical-text') === 'true') {
+                                let spanText = element.textContent || '';
+                                // Decode HTML entities
+                                spanText = spanText
+                                    .replace(/&lt;/g, '<')
+                                    .replace(/&gt;/g, '>')
+                                    .replace(/&amp;/g, '&')
+                                    .replace(/&quot;/g, '"')
+                                    .replace(/&#39;/g, "'");
+                                textParts.push(spanText);
+                                console.log(`   Span text: "${spanText}"`);
+                            } else if (element.tagName.toLowerCase() === 'br') {
+                                textParts.push('\n');
+                                console.log('   Found <br> -> adding newline');
+                            }
+                        }
+                    });
+                    
+                    const finalText = textParts.join('');
+                    console.log('4. Final extracted text:');
+                    console.log(JSON.stringify(finalText));
+                    console.log('5. Text with visible newlines:');
+                    console.log(finalText.replace(/\n/g, '\\n'));
+                    
+                    // Count lines
+                    const lineCount = (finalText.match(/\n/g) || []).length + 1;
+                    console.log('6. Line count:', lineCount);
+                    
+                    // Test conversion back to HTML with our new CSS approach
+                    const escapedForSave = finalText
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;');
+                        // Note: NOT converting newlines to <br> anymore
+                    
+                    const codeStyles = `
+                        background-color: #f6f8fa;
+                        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Monaco, 'Courier New', monospace;
+                        display: block;
+                        padding: 16px;
+                        line-height: 1.45;
+                        font-size: 14px;
+                        margin: 8px 0;
+                        overflow-x: auto;
+                        border: 1px solid #e1e4e8;
+                        border-radius: 6px;
+                        tab-size: 2;
+                        white-space: pre-line;
+                        word-wrap: break-word;
+                        color: #24292e;
+                    `.replace(/\\s+/g, ' ').trim();
+                    
+                    const savedHTML = `<code style="${codeStyles}">${escapedForSave}</code>`;
+                    console.log('7. HTML that would be saved:');
+                    console.log(savedHTML);
+                    
+                    // Test reload cycle
+                    console.log('\\n=== TESTING RELOAD CYCLE ===');
+                    const reloadDoc = parser.parseFromString(`<div>${savedHTML}</div>`, 'text/html');
+                    const reloadCodeElement = reloadDoc.querySelector('code');
+                    
+                    if (reloadCodeElement) {
+                        // Since we're using textContent and white-space: pre-line, 
+                        // the newlines should be preserved automatically
+                        const reloadedText = reloadCodeElement.textContent || '';
+                        console.log('8. Reloaded text:');
+                        console.log(JSON.stringify(reloadedText));
+                        console.log('9. Reloaded text with visible newlines:');
+                        console.log(reloadedText.replace(/\n/g, '\\n'));
+                        
+                        const reloadedLineCount = (reloadedText.match(/\n/g) || []).length + 1;
+                        console.log('10. Reloaded line count:', reloadedLineCount);
+                        
+                        // Compare
+                        console.log('\\n=== COMPARISON ===');
+                        console.log('Original line count:', lineCount);
+                        console.log('Reloaded line count:', reloadedLineCount);
+                        console.log('Are they equal?', lineCount === reloadedLineCount);
+                        console.log('Text content equal?', finalText === reloadedText);
+                        
+                        if (lineCount === reloadedLineCount && finalText === reloadedText) {
+                            console.log('✅ SUCCESS: Line breaks preserved through save/reload cycle!');
+                        } else {
+                            console.log('❌ FAILED: Line breaks lost during save/reload cycle');
+                            console.log('Original first 100 chars:', finalText.substring(0, 100));
+                            console.log('Reloaded first 100 chars:', reloadedText.substring(0, 100));
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Auto-run when page loads
+        window.addEventListener('load', testLexicalCodeBlockStructure);
+        
+        // Make function available globally
+        window.testLexicalCodeBlockStructure = testLexicalCodeBlockStructure;
+    </script>
+</head>
+<body>
+    <h1>Lexical Code Block Structure Test</h1>
+    <p>This page tests our new logic for handling Lexical's span+br structure in code blocks.</p>
+    <p>Open the console to see test results.</p>
+    
+    <button onclick="testLexicalCodeBlockStructure()">Run Test</button>
+    
+    <h2>Original Lexical Structure (with spans):</h2>
+    <div style="border: 1px solid #ccc; padding: 10px; background: #f9f9f9; font-family: monospace; font-size: 12px; word-break: break-all;">
+        &lt;code class="EditorTheme__code"&gt;&lt;span data-lexical-text="true"&gt;&amp;lt;div class="content-section"&amp;gt;&lt;/span&gt;&lt;br&gt;&lt;span data-lexical-text="true"&gt;  &amp;lt;img...&lt;/span&gt;&lt;br&gt;...&lt;/code&gt;
+    </div>
+    
+    <h2>Expected Final Result (with preserved line breaks):</h2>
+    <code style="background-color: #f6f8fa; font-family: monospace; display: block; padding: 16px; white-space: pre-line; border: 1px solid #e1e4e8;">&lt;div class="content-section"&gt;
+  &lt;img alt="Oil Change in Austin" 
+       src="https://picsum.photos/400/300?auto=oilchange" 
+       style="float:right; margin:15px; max-width:50%"&gt;
+  
+  &lt;h2&gt;&lt;strong&gt;Premium Oil Change Services&lt;/strong&gt;&lt;/h2&gt;
+  &lt;p&gt;Extend your engine's life with our precision oil changes...&lt;/p&gt;
+  &lt;ul&gt;
+    &lt;li&gt;&lt;strong&gt;Full synthetic options&lt;/strong&gt;: For extreme temperatures&lt;/li&gt;
+    &lt;li&gt;&lt;strong&gt;Quick service&lt;/strong&gt;: Under 30 minutes&lt;/li&gt;
+  &lt;/ul&gt;
+  
+  &lt;div class="subpage-buttons"&gt;
+    &lt;a href="/contact"&gt;
+      &lt;span class="fa fa-envelope"&gt;&lt;/span&gt; Schedule in [ND:FocusArea1]
+    &lt;/a&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code>
+</body>
+</html>

@@ -37,9 +37,6 @@ export async function POST(request: NextRequest) {
       name, 
       description, 
       prompt, 
-      tone, 
-      style, 
-      format, 
       creatorId 
     } = body
 
@@ -56,9 +53,6 @@ export async function POST(request: NextRequest) {
         name,
         description: description || null,
         prompt,
-        tone: tone || null,
-        style: style || null,
-        format: format || null,
         creatorId
       },
       include: {
@@ -90,10 +84,7 @@ export async function PUT(request: NextRequest) {
       id,
       name, 
       description, 
-      prompt, 
-      tone, 
-      style, 
-      format
+      prompt
     } = body
 
     // Validación
@@ -110,9 +101,6 @@ export async function PUT(request: NextRequest) {
         name,
         description: description || null,
         prompt,
-        tone: tone || null,
-        style: style || null,
-        format: format || null,
         updatedAt: new Date()
       },
       include: {

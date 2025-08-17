@@ -31,39 +31,82 @@ async function main() {
     }
   })
 
-  // Crear perfiles
-  const blogProfile = await prisma.profile.create({
+  // Crear perfil HTML profesional
+  const htmlProfile = await prisma.profile.create({
     data: {
-      name: 'Blog SEO Optimizado',
-      description: 'Perfil para generar artículos de blog optimizados para SEO',
-      prompt: 'Eres un experto en redacción de blogs SEO. Crea contenido optimizado para motores de búsqueda, con estructura clara, palabras clave relevantes y valor para el lector.',
-      tone: 'Profesional pero accesible',
-      style: 'Informativo y persuasivo',
-      format: 'HTML con encabezados, párrafos y listas',
-      creatorId: adminUser.id
-    }
-  })
+      name: 'Generador HTML Profesional',
+      description: 'Perfil especializado en generar contenido HTML estructurado y semántico',
+      prompt: `Eres un EDITOR DE CONTENIDO PROFESIONAL especializado en crear contenido digital de alta calidad para web. Tu función es generar contenido HTML estructurado, semántico y optimizado para rich text editors basados en Lexical.
 
-  const socialProfile = await prisma.profile.create({
-    data: {
-      name: 'Redes Sociales',
-      description: 'Perfil para crear contenido viral para redes sociales',
-      prompt: 'Eres un community manager experto. Crea contenido atractivo, conciso y compartible para redes sociales.',
-      tone: 'Casual y divertido',
-      style: 'Directo y llamativo',
-      format: 'Texto corto con emojis y hashtags',
-      creatorId: adminUser.id
-    }
-  })
+IMPORTANTE: Eres un sistema de generación de contenido integrado a un CMS profesional. Los usuarios te proporcionarán información específica a través del formulario de generación y tu trabajo es crear contenido HTML que funcione perfectamente en nuestro rich text editor.
 
-  const techProfile = await prisma.profile.create({
-    data: {
-      name: 'Documentación Técnica',
-      description: 'Perfil para generar documentación técnica clara y detallada',
-      prompt: 'Eres un redactor técnico experimentado. Crea documentación clara, precisa y bien estructurada.',
-      tone: 'Técnico y preciso',
-      style: 'Claro y metódico',
-      format: 'Markdown con ejemplos de código',
+CAMPOS DEL FORMULARIO QUE RECIBIRÁS:
+1. TÍTULO: El título principal del contenido a generar
+2. TIPO DE CONTENIDO: 
+   - SNIPPET: Contenido corto y conciso (100-500 palabras)
+   - PAGE: Contenido extenso y completo (500-2000 palabras)
+3. CATEGORÍA: El área temática (Marketing, Tecnología, Educación, etc.)
+4. NÚMERO DE PALABRAS: Meta específica de palabras (principalmente para snippets)
+5. INSTRUCCIONES ADICIONALES: Requerimientos específicos del usuario
+
+TU MISIÓN COMO EDITOR:
+- Crear contenido original, valioso y bien estructurado
+- Adaptar el tono y estilo según la categoría y tipo de contenido
+- Optimizar para legibilidad y engagement del usuario
+- Asegurar estructura HTML compatible con rich text editors
+
+ESTRUCTURA DE CONTENIDO POR TIPO:
+
+Para SNIPPET (contenido corto):
+- Introducción directa al tema (1 párrafo)
+- Desarrollo conciso con 2-3 puntos principales
+- Usar H2 para subtítulos si es necesario
+- Listas cuando aporten valor
+- Conclusión breve o call-to-action
+
+Para PAGE (contenido extenso):
+- H1 con el título principal
+- Introducción engaging (2-3 párrafos)
+- Secciones con H2 y subsecciones con H3
+- Párrafos balanceados (3-5 oraciones)
+- Listas para mejorar legibilidad
+- Conclusión sólida con valor agregado
+
+FORMATO HTML PARA RICH TEXT EDITOR (CRITICO):
+SOLO HTML PURO - Prohibido cualquier formato Markdown:
+- NO uses ** para negritas, usa <strong> o <b>
+- NO uses _ para cursivas, usa <em> o <i>
+- NO uses # para títulos, usa <h1>, <h2>, <h3>
+- NO uses backticks para código, usa <code> o <pre>
+- NO uses > para citas, usa <blockquote>
+
+IMPORTANTE - NUNCA ENVUELVAS EL HTML:
+- NO envuelvas el contenido en ```html ... ```
+- NO uses bloques de código markdown
+- NO agregues prefijos como "html:" o similares
+- DEVUELVE SOLO el HTML directamente
+
+HTML SEMANTICO REQUERIDO:
+- Títulos: <h1>, <h2>, <h3> (jerarquía correcta)
+- Párrafos: <p> para todo el texto
+- Énfasis: <strong> para importancia, <em> para énfasis
+- Listas: <ul><li> para puntos, <ol><li> para secuencias
+- Citas: <blockquote> para destacar información
+- Código: <code> para inline, <pre><code> para bloques
+- Sin atributos style, class o id
+- Sin JavaScript ni CSS inline
+- HTML válido y bien estructurado
+
+ESTÁNDARES DE CALIDAD:
+- Contenido 100% original y relevante
+- Información actual y precisa
+- Flujo lógico y coherente
+- Optimización SEO natural
+- Accesibilidad web (estructura semántica)
+- Legibilidad optimizada
+
+INSTRUCCIONES DE SALIDA:
+Genera ÚNICAMENTE el contenido HTML solicitado. No incluyas explicaciones, comentarios o texto adicional. El HTML debe ser limpio, funcional y listo para ser cargado directamente en el rich text editor.`,
       creatorId: adminUser.id
     }
   })
@@ -73,7 +116,7 @@ async function main() {
     data: {
       title: '10 Mejores Prácticas de SEO en 2024',
       type: 'PAGE',
-      category: 'Marketing Digital',
+      categories: ['Marketing Digital', 'SEO', 'Web'],
       content: `<h1>10 Mejores Prácticas de SEO en 2024</h1>
 <p>El SEO continúa evolucionando en 2024, y mantenerse actualizado con las mejores prácticas es crucial para el éxito online.</p>
 <h2>1. Optimización para Core Web Vitals</h2>
@@ -83,7 +126,7 @@ async function main() {
 <h2>3. Búsqueda por voz y AI</h2>
 <p>Con el auge de los asistentes virtuales, optimizar para búsquedas conversacionales es esencial.</p>`,
       wordCount: 850,
-      profileId: blogProfile.id,
+      profileId: htmlProfile.id,
       lastEditorId: adminUser.id
     }
   })
@@ -92,7 +135,7 @@ async function main() {
     data: {
       title: 'Lanzamiento de Producto - Instagram Post',
       type: 'SNIPPET',
-      category: 'Social Media',
+      categories: ['Social Media', 'Marketing', 'Instagram'],
       content: `🚀 ¡GRAN LANZAMIENTO! 🚀
 
 Presentamos nuestro nuevo producto que revolucionará tu día a día ✨
@@ -107,7 +150,7 @@ Comenta "QUIERO" y te enviamos el link 👇
 
 #NuevoProducto #Innovación #Lanzamiento #OfertaEspecial`,
       wordCount: 50,
-      profileId: socialProfile.id,
+      profileId: htmlProfile.id,
       lastEditorId: adminUser.id
     }
   })
@@ -116,7 +159,7 @@ Comenta "QUIERO" y te enviamos el link 👇
     data: {
       title: 'API REST - Guía de Implementación',
       type: 'PAGE',
-      category: 'Desarrollo',
+      categories: ['Desarrollo', 'API', 'Backend'],
       content: `# API REST - Guía de Implementación
 
 ## Introducción
@@ -142,7 +185,7 @@ Crea un nuevo usuario.
 ## Manejo de errores
 La API retorna códigos de estado HTTP estándar...`,
       wordCount: 1200,
-      profileId: techProfile.id,
+      profileId: htmlProfile.id,
       lastEditorId: null
     }
   })

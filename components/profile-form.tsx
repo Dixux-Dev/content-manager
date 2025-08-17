@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog"
+import { profileEvents } from "@/lib/profile-events"
+import { Editor } from "@/components/editor/editor"
+import { SerializedEditorState } from "lexical"
+import { serializedStateToText, isEditorEmpty, htmlToSerializedState, serializedStateToHtml } from "@/lib/editor-utils"
 import { Save, Plus, Edit, Trash2 } from "lucide-react"
 
 export function ProfileForm() {
@@ -14,14 +19,13 @@ export function ProfileForm() {
   const [editingProfile, setEditingProfile] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    prompt: "",
-    tone: "",
-    style: "",
-    format: ""
+    prompt: ""
   })
+  const [promptEditorState, setPromptEditorState] = useState<SerializedEditorState | undefined>()
 
   // Cargar perfiles desde API
   useEffect(() => {
@@ -49,9 +53,16 @@ export function ProfileForm() {
     try {
       const url = '/api/profiles'
       const method = editingProfile ? 'PUT' : 'POST'
+      
+      // Convertir el estado del editor a HTML para preservar estilos
+      let promptToSave = formData.prompt
+      if (promptEditorState) {
+        promptToSave = serializedStateToHtml(promptEditorState)
+      }
+      
       const bodyData = editingProfile 
-        ? { ...formData, id: editingProfile.id }
-        : { ...formData, creatorId: session.user.id }
+        ? { ...formData, prompt: promptToSave, id: editingProfile.id }
+        : { ...formData, prompt: promptToSave, creatorId: session.user.id }
 
       const response = await fetch(url, {
         method,
@@ -62,17 +73,25 @@ export function ProfileForm() {
       })
 
       if (response.ok) {
+        const savedProfile = await response.json()
         await fetchProfiles() // Recargar la lista
-        // Limpiar formulario
+        
+        // Emitir evento para sincronización
+        if (editingProfile) {
+          profileEvents.profileUpdated(savedProfile)
+        } else {
+          profileEvents.profileCreated(savedProfile)
+        }
+        
+        // Limpiar formulario y cerrar modal
         setFormData({
           name: "",
           description: "",
-          prompt: "",
-          tone: "",
-          style: "",
-          format: ""
+          prompt: ""
         })
         setEditingProfile(null)
+        setPromptEditorState(undefined)
+        setIsModalOpen(false)
       } else {
         alert('Error guardando perfil')
       }
@@ -89,11 +108,23 @@ export function ProfileForm() {
     setFormData({
       name: profile.name,
       description: profile.description || "",
-      prompt: profile.prompt,
-      tone: profile.tone || "",
-      style: profile.style || "",
-      format: profile.format || ""
+      prompt: profile.prompt
     })
+    
+    // Reset editor state for fresh initialization with initialValue
+    setPromptEditorState(undefined)
+    setIsModalOpen(true)
+  }
+
+  const handleCreateNew = () => {
+    setEditingProfile(null)
+    setFormData({
+      name: "",
+      description: "",
+      prompt: ""
+    })
+    setPromptEditorState(undefined)
+    setIsModalOpen(true)
   }
 
   const handleDelete = async (id: string) => {
@@ -108,6 +139,9 @@ export function ProfileForm() {
 
       if (response.ok) {
         await fetchProfiles() // Recargar la lista
+        
+        // Emitir evento para sincronización
+        profileEvents.profileDeleted(id)
       } else {
         const error = await response.json()
         alert(error.error || 'Error eliminando perfil')
@@ -130,80 +164,142 @@ export function ProfileForm() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {editingProfile ? "Editar Perfil" : "Crear Nuevo Perfil"}
-          </CardTitle>
-          <CardDescription>
-            Los perfiles definen cómo se genera el contenido
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Nombre del Perfil</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                placeholder="Ej: Blog SEO Optimizado"
-              />
+      {/* Botón para crear nuevo perfil */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold">Perfiles de Generación</h1>
+          <p className="text-muted-foreground mt-1">
+            Gestiona tus perfiles de contenido desde aquí
+          </p>
+        </div>
+        <Button onClick={handleCreateNew}>
+          <Plus className="mr-2 h-4 w-4" />
+          Nuevo Perfil
+        </Button>
+      </div>
+
+      {/* Grid de cards de perfiles */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {profiles.map((profile) => (
+          <Card key={profile.id} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">{profile.name}</CardTitle>
+              {profile.description && (
+                <CardDescription className="text-sm">
+                  {profile.description}
+                </CardDescription>
+              )}
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="flex justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleEdit(profile)}
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  Editar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleDelete(profile.id)}
+                  className="text-red-600 hover:text-red-700 hover:border-red-300"
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Eliminar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {profiles.length === 0 && !isLoading && (
+        <Card className="text-center py-12">
+          <CardContent>
+            <div className="text-muted-foreground">
+              <Plus className="mx-auto h-12 w-12 mb-4 opacity-50" />
+              <p className="text-lg font-medium mb-2">No hay perfiles creados</p>
+              <p className="text-sm mb-4">Crea tu primer perfil de generación para empezar</p>
+              <Button onClick={handleCreateNew}>
+                <Plus className="mr-2 h-4 w-4" />
+                Crear Primer Perfil
+              </Button>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Modal para formulario */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingProfile ? "Editar Perfil" : "Crear Nuevo Perfil"}
+            </DialogTitle>
+            <DialogDescription>
+              Los perfiles definen cómo se genera el contenido usando prompts personalizados
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="name">Nombre del Perfil</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  placeholder="Ej: Blog SEO Optimizado"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="description">Descripción</Label>
+                <Input
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  placeholder="Breve descripción del perfil"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
             <div>
-              <Label htmlFor="description">Descripción</Label>
-              <Input
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-                placeholder="Breve descripción del perfil"
-              />
+              <Label htmlFor="prompt">Prompt Maestro</Label>
+              <div className="mt-2">
+                <Editor
+                  key={editingProfile?.id || 'new-profile'}
+                  initialValue={formData.prompt}
+                  onSerializedChange={(state) => {
+                    setPromptEditorState(state)
+                    const htmlContent = serializedStateToHtml(state)
+                    setFormData({...formData, prompt: htmlContent})
+                  }}
+                  placeholder="Define las instrucciones principales para la generación de contenido..."
+                />
+              </div>
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="prompt">Prompt Maestro</Label>
-            <textarea
-              id="prompt"
-              className="w-full px-3 py-2 border rounded-md"
-              rows={4}
-              value={formData.prompt}
-              onChange={(e) => setFormData({...formData, prompt: e.target.value})}
-              placeholder="Define las instrucciones principales para la generación de contenido..."
-            />
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="tone">Tono</Label>
-              <Input
-                id="tone"
-                value={formData.tone}
-                onChange={(e) => setFormData({...formData, tone: e.target.value})}
-                placeholder="Ej: Profesional"
-              />
-            </div>
-            <div>
-              <Label htmlFor="style">Estilo</Label>
-              <Input
-                id="style"
-                value={formData.style}
-                onChange={(e) => setFormData({...formData, style: e.target.value})}
-                placeholder="Ej: Informativo"
-              />
-            </div>
-            <div>
-              <Label htmlFor="format">Formato</Label>
-              <Input
-                id="format"
-                value={formData.format}
-                onChange={(e) => setFormData({...formData, format: e.target.value})}
-                placeholder="Ej: HTML"
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-2">
+          <DialogFooter>
+            <Button 
+              variant="outline"
+              onClick={() => {
+                setIsModalOpen(false)
+                setEditingProfile(null)
+                setFormData({
+                  name: "",
+                  description: "",
+                  prompt: ""
+                })
+                setPromptEditorState(undefined)
+              }}
+            >
+              Cancelar
+            </Button>
             <Button 
               onClick={handleSave}
               disabled={!formData.name || !formData.prompt || isSaving}
@@ -211,71 +307,9 @@ export function ProfileForm() {
               <Save className="mr-2 h-4 w-4" />
               {isSaving ? 'Guardando...' : editingProfile ? "Actualizar" : "Guardar"} Perfil
             </Button>
-            {editingProfile && (
-              <Button 
-                variant="outline"
-                onClick={() => {
-                  setEditingProfile(null)
-                  setFormData({
-                    name: "",
-                    description: "",
-                    prompt: "",
-                    tone: "",
-                    style: "",
-                    format: ""
-                  })
-                }}
-              >
-                Cancelar
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Perfiles Existentes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {profiles.map((profile) => (
-              <div key={profile.id} className="border rounded-lg p-4">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg">{profile.name}</h3>
-                    {profile.description && (
-                      <p className="text-sm text-gray-600 mt-1">{profile.description}</p>
-                    )}
-                    <div className="mt-2 flex gap-4 text-sm text-gray-500">
-                      {profile.tone && <span>Tono: {profile.tone}</span>}
-                      {profile.style && <span>Estilo: {profile.style}</span>}
-                      {profile.format && <span>Formato: {profile.format}</span>}
-                    </div>
-                    <p className="mt-2 text-sm text-gray-700">{profile.prompt}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleEdit(profile)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDelete(profile.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -17,16 +17,7 @@ export default async function ProfilesPage() {
   
   return (
     <AuthenticatedLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Perfiles de Generación</h1>
-          <p className="text-muted-foreground mt-2">
-            Configura perfiles personalizados para diferentes tipos de contenido
-          </p>
-        </div>
-        
-        <ProfileForm />
-      </div>
+      <ProfileForm />
     </AuthenticatedLayout>
   )
 }

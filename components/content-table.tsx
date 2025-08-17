@@ -14,7 +14,13 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { profileEvents } from "@/lib/profile-events"
 import { ContentWithRelations } from "@/types"
+import { Badge } from "@/components/ui/badge"
+import { MultiCategorySelector } from "@/components/multi-category-selector"
+import { Editor } from "@/components/editor/editor"
+import { SerializedEditorState } from "lexical"
+import { serializedStateToHtml, htmlToSerializedState } from "@/lib/editor-utils"
 
 interface ContentTableProps {
   userRole?: 'ADMIN' | 'VIEWER'
@@ -25,13 +31,15 @@ export function ContentTable({ userRole = 'VIEWER' }: ContentTableProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("")
   const [selectedType, setSelectedType] = useState<string>("")
   const [content, setContent] = useState<ContentWithRelations[]>([])
+  const [categories, setCategories] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingContent, setEditingContent] = useState<ContentWithRelations | null>(null)
 
-  // Cargar contenido desde API
+  // Cargar contenido y categorías desde API
   useEffect(() => {
     fetchContent()
+    fetchCategories()
   }, [])
 
   const fetchContent = async () => {
@@ -48,6 +56,18 @@ export function ContentTable({ userRole = 'VIEWER' }: ContentTableProps) {
     }
   }
 
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/categories')
+      if (response.ok) {
+        const data = await response.json()
+        setCategories(data)
+      }
+    } catch (error) {
+      console.error('Error cargando categorías:', error)
+    }
+  }
+
   const handleDelete = async (id: string) => {
     if (!confirm('¿Estás seguro de que quieres eliminar este contenido?')) {
       return
@@ -60,6 +80,7 @@ export function ContentTable({ userRole = 'VIEWER' }: ContentTableProps) {
 
       if (response.ok) {
         await fetchContent() // Recargar la lista
+        await fetchCategories() // Recargar categorías
       } else {
         alert('Error eliminando contenido')
       }
@@ -70,9 +91,15 @@ export function ContentTable({ userRole = 'VIEWER' }: ContentTableProps) {
   }
 
   const filteredContent = content.filter(item => {
+    // Buscar en título o en cualquiera de las categorías
+    const categoriesString = Array.isArray(item.categories) ? item.categories.join(' ') : ''
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.category.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = !selectedCategory || item.category === selectedCategory
+                         categoriesString.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    // Filtrar por categoría específica
+    const matchesCategory = !selectedCategory || 
+                           (Array.isArray(item.categories) && item.categories.includes(selectedCategory))
+    
     const matchesType = !selectedType || item.type === selectedType
     
     return matchesSearch && matchesCategory && matchesType
@@ -116,9 +143,11 @@ export function ContentTable({ userRole = 'VIEWER' }: ContentTableProps) {
             onChange={(e) => setSelectedCategory(e.target.value)}
           >
             <option value="">Todas las categorías</option>
-            <option value="Marketing Digital">Marketing Digital</option>
-            <option value="Social Media">Social Media</option>
-            <option value="Desarrollo">Desarrollo</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
           </select>
           <select 
             className="px-3 py-2 border rounded-md"
@@ -155,7 +184,17 @@ export function ContentTable({ userRole = 'VIEWER' }: ContentTableProps) {
                       {item.type}
                     </span>
                   </td>
-                  <td className="px-6 py-4">{item.category}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-wrap gap-1">
+                      {Array.isArray(item.categories) ? 
+                        item.categories.map((category) => (
+                          <Badge key={category} variant="secondary" className="text-xs">
+                            {category}
+                          </Badge>
+                        )) : null
+                      }
+                    </div>
+                  </td>
                   <td className="px-6 py-4">{item.profile.name}</td>
                   <td className="px-6 py-4">
                     {format(item.createdAt, 'dd MMM yyyy', { locale: es })}
@@ -206,7 +245,10 @@ export function ContentTable({ userRole = 'VIEWER' }: ContentTableProps) {
               setShowCreateForm(false)
               setEditingContent(null)
             }}
-            onSave={fetchContent}
+            onSave={() => {
+              fetchContent()
+              fetchCategories()
+            }}
           />
         )}
       </CardContent>
@@ -227,17 +269,70 @@ function ContentFormModal({
   const [formData, setFormData] = useState({
     title: content?.title || '',
     type: content?.type || 'SNIPPET',
-    category: content?.category || '',
+    categories: content?.categories || [],
     content: content?.content || '',
-    profileId: content?.profileId || '',
-    wordCount: content?.wordCount?.toString() || ''
+    profileId: content?.profileId || ''
   })
 
   const [profiles, setProfiles] = useState([])
   const [isLoading, setIsLoading] = useState(false)
+  const [editorKey, setEditorKey] = useState<string>(`editor-${Date.now()}`)
+  const [editorState, setEditorState] = useState<SerializedEditorState | undefined>()
+
+  // Actualizar formData cuando cambia el contenido
+  useEffect(() => {
+    if (content) {
+      setFormData({
+        title: content.title || '',
+        type: content.type || 'SNIPPET',
+        categories: content.categories || [],
+        content: content.content || '',
+        profileId: content.profileId || ''
+      })
+      
+      // Reset editor state for new content
+      try {
+        if (content.content && content.content.trim()) {
+          const lexicalState = htmlToSerializedState(content.content)
+          setEditorState(lexicalState)
+        } else {
+          setEditorState(undefined)
+        }
+        setEditorKey(`editor-${content.id || 'new'}-${Date.now()}`)
+      } catch (error) {
+        console.error('Error converting content to editor state:', error)
+        setEditorState(undefined)
+        setEditorKey(`editor-fallback-${Date.now()}`)
+      }
+    } else {
+      // New content - reset editor
+      setEditorState(undefined)
+      setEditorKey(`editor-new-${Date.now()}`)
+    }
+  }, [content])
 
   useEffect(() => {
     fetchProfiles()
+
+    // Suscribirse a eventos de perfiles para sincronización
+    const unsubscribeCreated = profileEvents.subscribe('profile-created', () => {
+      fetchProfiles() // Recargar lista cuando se crea un perfil
+    })
+
+    const unsubscribeUpdated = profileEvents.subscribe('profile-updated', () => {
+      fetchProfiles() // Recargar lista cuando se actualiza un perfil
+    })
+
+    const unsubscribeDeleted = profileEvents.subscribe('profile-deleted', () => {
+      fetchProfiles() // Recargar lista cuando se elimina un perfil
+    })
+
+    // Cleanup - desuscribirse cuando el componente se desmonta
+    return () => {
+      unsubscribeCreated()
+      unsubscribeUpdated()
+      unsubscribeDeleted()
+    }
   }, [])
 
   const fetchProfiles = async () => {
@@ -256,10 +351,14 @@ function ContentFormModal({
     e.preventDefault()
     setIsLoading(true)
 
+
     try {
       const url = content ? '/api/content' : '/api/content'
       const method = content ? 'PUT' : 'POST'
-      const bodyData = content ? { ...formData, id: content.id } : formData
+      
+      const bodyData = content ? 
+        { ...formData, id: content.id } : 
+        { ...formData }
 
       const response = await fetch(url, {
         method,
@@ -284,8 +383,8 @@ function ContentFormModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={onClose}>
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-xl font-bold mb-4">
           {content ? 'Editar Contenido' : 'Nuevo Contenido'}
         </h2>
@@ -300,27 +399,24 @@ function ContentFormModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Tipo</label>
-              <select
-                className="w-full px-3 py-2 border rounded-md"
-                value={formData.type}
-                onChange={(e) => setFormData({...formData, type: e.target.value as any})}
-              >
-                <option value="SNIPPET">Snippet</option>
-                <option value="PAGE">Página</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Tipo</label>
+            <select
+              className="w-full px-3 py-2 border rounded-md"
+              value={formData.type}
+              onChange={(e) => setFormData({...formData, type: e.target.value as any})}
+            >
+              <option value="SNIPPET">Snippet</option>
+              <option value="PAGE">Página</option>
+            </select>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Categoría</label>
-              <Input
-                value={formData.category}
-                onChange={(e) => setFormData({...formData, category: e.target.value})}
-                required
-              />
-            </div>
+          <div>
+            <MultiCategorySelector
+              value={formData.categories}
+              onChange={(value) => setFormData({...formData, categories: value})}
+              required
+            />
           </div>
 
           <div>
@@ -342,23 +438,26 @@ function ContentFormModal({
 
           <div>
             <label className="block text-sm font-medium mb-1">Contenido</label>
-            <textarea
-              className="w-full px-3 py-2 border rounded-md"
-              rows={6}
-              value={formData.content}
-              onChange={(e) => setFormData({...formData, content: e.target.value})}
-              required
-            />
+            <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+              <Editor
+                key={editorKey}
+                editorSerializedState={editorState}
+                initialValue={!editorState ? formData.content : undefined}
+                onSerializedChange={(state) => {
+                  // Update editor state and convert to HTML
+                  setEditorState(state)
+                  try {
+                    const htmlContent = serializedStateToHtml(state)
+                    setFormData(prevFormData => ({...prevFormData, content: htmlContent}))
+                  } catch (error) {
+                    console.error('Error converting editor state to HTML:', error)
+                  }
+                }}
+                placeholder="Escribe o edita el contenido aquí..."
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Palabras (opcional)</label>
-            <Input
-              type="number"
-              value={formData.wordCount}
-              onChange={(e) => setFormData({...formData, wordCount: e.target.value})}
-            />
-          </div>
 
           <div className="flex gap-2 pt-4">
             <Button type="submit" disabled={isLoading}>

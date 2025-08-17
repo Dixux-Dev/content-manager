@@ -4,7 +4,7 @@ export type ContentWithRelations = {
   id: string
   title: string
   type: 'SNIPPET' | 'PAGE'
-  category: string
+  categories: string[]
   content: string
   wordCount: number | null
   profileId: string
