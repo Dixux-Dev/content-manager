@@ -8,11 +8,13 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog"
 import { SerializedEditorState } from "lexical"
-import { Save, Plus, Edit, Trash2 } from "lucide-react"
+import { Save, Plus, Edit, Trash2, Eye } from "lucide-react"
 import { Editor } from "@/components/editor/editor"
 import { profileEvents } from "@/lib/profile-events"
 import { serializedStateToText, isEditorEmpty, htmlToSerializedState, serializedStateToHtml } from "@/lib/editor-utils"
 import { ProfileWithCreator } from "@/types"
+import { getProfilePermissions, UserRole } from "@/lib/permissions"
+import { ProfileViewerModal } from "@/components/profile-viewer-modal"
 
 /**
  * Profile management form component
@@ -33,6 +35,9 @@ import { ProfileWithCreator } from "@/types"
  */
 export function ProfileForm() {
   const { data: session } = useSession()
+  const userRole = session?.user?.role as UserRole
+  const permissions = getProfilePermissions(userRole)
+  
   const [profiles, setProfiles] = useState<ProfileWithCreator[]>([])
   const [editingProfile, setEditingProfile] = useState<ProfileWithCreator | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -44,6 +49,7 @@ export function ProfileForm() {
     prompt: ""
   })
   const [promptEditorState, setPromptEditorState] = useState<SerializedEditorState | undefined>()
+  const [viewingProfile, setViewingProfile] = useState<ProfileWithCreator | null>(null)
 
   // Load profiles from API
   useEffect(() => {
@@ -190,10 +196,12 @@ export function ProfileForm() {
             Manage your content profiles from here
           </p>
         </div>
-        <Button onClick={handleCreateNew}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Profile
-        </Button>
+        {permissions.canCreate && (
+          <Button onClick={handleCreateNew}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Profile
+          </Button>
+        )}
       </div>
 
       {/* Grid of profile cards */}
@@ -213,20 +221,33 @@ export function ProfileForm() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => handleEdit(profile)}
+                  onClick={() => setViewingProfile(profile)}
+                  title="View profile"
                 >
-                  <Edit className="h-4 w-4 mr-1" />
-                  Edit
+                  <Eye className="h-4 w-4 mr-1" />
+                  View
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleDelete(profile.id)}
-                  className="text-red-600 hover:text-red-700 hover:border-red-300"
-                >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Delete
-                </Button>
+                {permissions.canUpdate && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEdit(profile)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                )}
+                {permissions.canDelete && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDelete(profile.id)}
+                    className="text-red-600 hover:text-red-700 hover:border-red-300"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -328,6 +349,14 @@ export function ProfileForm() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* View profile modal */}
+      {viewingProfile && (
+        <ProfileViewerModal
+          profile={viewingProfile}
+          onClose={() => setViewingProfile(null)}
+        />
+      )}
     </div>
   )
 }

@@ -11,6 +11,7 @@ async function main() {
 
   // Create users
   const adminPassword = await bcrypt.hash('admin123', 10)
+  const editorPassword = await bcrypt.hash('editor123', 10)
   const viewerPassword = await bcrypt.hash('viewer123', 10)
 
   const adminUser = await prisma.user.create({
@@ -19,6 +20,15 @@ async function main() {
       email: 'admin@example.com',
       password: adminPassword,
       role: 'ADMIN'
+    }
+  })
+
+  const editorUser = await prisma.user.create({
+    data: {
+      name: 'Content Editor',
+      email: 'editor@example.com',
+      password: editorPassword,
+      role: 'EDITOR'
     }
   })
 

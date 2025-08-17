@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { format } from "date-fns"
 import { enUS } from "date-fns/locale"
 import { 
@@ -21,6 +22,8 @@ import { MultiCategorySelector } from "@/components/multi-category-selector"
 import { Editor } from "@/components/editor/editor"
 import { SerializedEditorState } from "lexical"
 import { serializedStateToHtml, htmlToSerializedState, isEditorEmpty, serializedStateToText } from "@/lib/editor-utils"
+import { getContentPermissions, UserRole } from "@/lib/permissions"
+import { ContentViewerModal } from "@/components/content-viewer-modal"
 
 // Helper function to get displayable content
 function getDisplayableContent(content: string): string {
@@ -37,38 +40,25 @@ function getDisplayableContent(content: string): string {
 }
 
 /**
- * Props for the ContentTable component
- * @description Data table for displaying and managing content items with role-based permissions
- */
-interface ContentTableProps {
-  /** User's role determining available actions
-   * @default 'VIEWER'
-   * @description ADMIN can create/edit/delete content, VIEWER can only view
-   */
-  userRole?: 'ADMIN' | 'VIEWER'
-}
-
-/**
  * Content management table with search, filtering, and CRUD operations
  * @description Displays content items in a table format with search/filter capabilities
  * Features include:
  * - Search by title or category
  * - Filter by category and content type
- * - Role-based actions (view for all, edit/delete for admins)
+ * - Role-based actions based on user permissions
  * - Inline content preview
  * - Modal-based creation and editing
  * 
  * @component
  * @example
  * ```tsx
- * // For admin users
- * <ContentTable userRole="ADMIN" />
- * 
- * // For viewer users (default)
- * <ContentTable userRole="VIEWER" />
+ * <ContentTable />
  * ```
  */
-export function ContentTable({ userRole = 'VIEWER' }: ContentTableProps) {
+export function ContentTable() {
+  const { data: session } = useSession()
+  const userRole = session?.user?.role as UserRole
+  const permissions = getContentPermissions(userRole)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string>("")
   const [selectedType, setSelectedType] = useState<string>("")
@@ -77,6 +67,7 @@ export function ContentTable({ userRole = 'VIEWER' }: ContentTableProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingContent, setEditingContent] = useState<ContentWithRelations | null>(null)
+  const [viewingContent, setViewingContent] = useState<ContentWithRelations | null>(null)
 
   // Load content and categories from API
   useEffect(() => {
@@ -162,7 +153,7 @@ export function ContentTable({ userRole = 'VIEWER' }: ContentTableProps) {
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Content List</CardTitle>
-          {userRole === 'ADMIN' && (
+          {permissions.canCreate && (
             <Button onClick={() => setShowCreateForm(true)}>
               <Plus className="h-4 w-4 mr-2" />
               New Content
@@ -247,32 +238,29 @@ export function ContentTable({ userRole = 'VIEWER' }: ContentTableProps) {
                         size="sm" 
                         variant="ghost"
                         title="View content"
-                        onClick={() => {
-                          const displayContent = getDisplayableContent(item.content)
-                          alert(`Content: ${displayContent.substring(0, 200)}...`)
-                        }}
+                        onClick={() => setViewingContent(item)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {userRole === 'ADMIN' && (
-                        <>
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            title="Edit content"
-                            onClick={() => setEditingContent(item)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            title="Delete content"
-                            onClick={() => handleDelete(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </>
+                      {permissions.canEdit && (
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          title="Edit content"
+                          onClick={() => setEditingContent(item)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {permissions.canDelete && (
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          title="Delete content"
+                          onClick={() => handleDelete(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
                       )}
                     </div>
                   </td>
@@ -296,6 +284,14 @@ export function ContentTable({ userRole = 'VIEWER' }: ContentTableProps) {
             }}
           />
         )}
+
+        {/* View content modal */}
+        {viewingContent && (
+          <ContentViewerModal
+            content={viewingContent}
+            onClose={() => setViewingContent(null)}
+          />
+        )}
       </CardContent>
     </Card>
   )
@@ -310,6 +306,10 @@ interface ContentFormModalProps {
    * @description When null, opens in creation mode; when provided, opens in edit mode
    */
   content: ContentWithRelations | null
+  /** Whether the modal is in view-only mode
+   * @description When true, all inputs are disabled and save button is hidden
+   */
+  viewOnly?: boolean
   /** Callback fired when modal should be closed
    * @description Called when user cancels or clicks outside modal
    */
@@ -334,6 +334,7 @@ interface ContentFormModalProps {
  */
 function ContentFormModal({ 
   content, 
+  viewOnly = false,
   onClose, 
   onSave 
 }: ContentFormModalProps) {
@@ -449,9 +450,9 @@ function ContentFormModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={onClose}>
-      <div className="bg-white rounded-lg p-6 w-[80%] max-w-6xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto mx-4" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-xl font-bold mb-4">
-          {content ? 'Edit Content' : 'New Content'}
+          {viewOnly ? 'View Content' : content ? 'Edit Content' : 'New Content'}
         </h2>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -460,6 +461,7 @@ function ContentFormModal({
             <Input
               value={formData.title}
               onChange={(e) => setFormData({...formData, title: e.target.value})}
+              disabled={viewOnly}
               required
             />
           </div>
@@ -470,6 +472,7 @@ function ContentFormModal({
               className="w-full px-3 py-2 border rounded-md"
               value={formData.type}
               onChange={(e) => setFormData({...formData, type: e.target.value as any})}
+              disabled={viewOnly}
             >
               <option value="SNIPPET">Snippet</option>
               <option value="PAGE">Page</option>
@@ -477,11 +480,25 @@ function ContentFormModal({
           </div>
 
           <div>
-            <MultiCategorySelector
-              value={formData.categories}
-              onChange={(value) => setFormData({...formData, categories: value})}
-              required
-            />
+            <label className="block text-sm font-medium mb-1">Categories</label>
+            {viewOnly ? (
+              <div className="flex flex-wrap gap-1 p-2 border rounded-md bg-gray-50">
+                {formData.categories.map((category) => (
+                  <Badge key={category} variant="secondary" className="text-xs">
+                    {category}
+                  </Badge>
+                ))}
+                {formData.categories.length === 0 && (
+                  <span className="text-gray-500 text-sm">No categories</span>
+                )}
+              </div>
+            ) : (
+              <MultiCategorySelector
+                value={formData.categories}
+                onChange={(value) => setFormData({...formData, categories: value})}
+                required
+              />
+            )}
           </div>
 
           <div>
@@ -490,6 +507,7 @@ function ContentFormModal({
               className="w-full px-3 py-2 border rounded-md"
               value={formData.profileId}
               onChange={(e) => setFormData({...formData, profileId: e.target.value})}
+              disabled={viewOnly}
               required
             >
               <option value="">Select profile</option>
@@ -504,21 +522,30 @@ function ContentFormModal({
           <div>
             <label className="block text-sm font-medium mb-1">Content</label>
             <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-              <Editor
-                initialValue={formData.content}
-                onSerializedChange={setEditorState}
-                placeholder="Write or edit content here..."
-              />
+              {viewOnly ? (
+                <div 
+                  className="min-h-[200px] p-3 border rounded-md bg-gray-50"
+                  dangerouslySetInnerHTML={{ __html: getDisplayableContent(formData.content) }}
+                />
+              ) : (
+                <Editor
+                  initialValue={formData.content}
+                  onSerializedChange={setEditorState}
+                  placeholder="Write or edit content here..."
+                />
+              )}
             </div>
           </div>
 
 
           <div className="flex gap-2 pt-4">
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Save'}
-            </Button>
+            {!viewOnly && (
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? 'Saving...' : 'Save'}
+              </Button>
+            )}
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
+              {viewOnly ? 'Close' : 'Cancel'}
             </Button>
           </div>
         </form>

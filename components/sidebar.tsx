@@ -1,19 +1,19 @@
 "use client"
 
+import { Button } from "@/components/ui/button"
+import { canAccessRoute, UserRole } from "@/lib/permissions"
+import { cn } from "@/lib/utils"
+import {
+  FileText,
+  Home,
+  LogOut,
+  PlusCircle,
+  User,
+  Users
+} from "lucide-react"
+import { signOut, useSession } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useSession, signOut } from "next-auth/react"
-import { cn } from "@/lib/utils"
-import { 
-  Home, 
-  FileText, 
-  Settings, 
-  User,
-  PlusCircle,
-  List,
-  LogOut
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
 
 const routes = [
   {
@@ -34,6 +34,12 @@ const routes = [
     href: "/profiles",
     color: "text-pink-700",
   },
+  {
+    label: "Users",
+    icon: Users,
+    href: "/users",
+    color: "text-orange-700",
+  },
 ]
 
 export function Sidebar() {
@@ -48,15 +54,20 @@ export function Sidebar() {
     <div className="space-y-4 py-4 flex flex-col h-full bg-gray-900 text-white">
       <div className="px-3 py-2 flex-1">
         <Link href="/" className="flex items-center pl-3 mb-14">
-          <div className="relative w-8 h-8 mr-4">
+          <div className="relative w-8 h-8 mr-2">
             <FileText className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-xl font-bold">
             Content Manager
           </h1>
         </Link>
         <div className="space-y-1">
-          {routes.map((route) => (
+          {routes
+            .filter((route) => {
+              if (status !== "authenticated" || !session?.user?.role) return false
+              return canAccessRoute(session.user.role as UserRole, route.href)
+            })
+            .map((route) => (
             <Link
               key={route.href}
               href={route.href}

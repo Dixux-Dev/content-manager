@@ -6,13 +6,14 @@ export default withAuth({
   },
 })
 
-// Protect specific routes including root
+// Protect specific routes including root and API endpoints
 export const config = {
   matcher: [
     "/",
-    "/dashboard/:path*",
-    "/generator/:path*", 
-    "/profiles/:path*",
-    "/admin/:path*"
+    "/dashboard",
+    "/generator", 
+    "/profiles",
+    "/users",
+    "/api/((?!auth).*)" // Protect all API routes except auth
   ],
 }

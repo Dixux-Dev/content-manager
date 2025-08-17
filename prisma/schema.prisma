@@ -51,6 +51,7 @@ model Profile {
 
 enum Role {
   ADMIN
+  EDITOR
   VIEWER
 }
 

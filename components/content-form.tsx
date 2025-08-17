@@ -14,6 +14,7 @@ import { StyledContent } from "@/components/editor/styled-content"
 import { SerializedEditorState } from "lexical"
 import { serializedStateToText, isEditorEmpty, htmlToSerializedState, serializedStateToHtml } from "@/lib/editor-utils"
 import { ProfileWithCreator } from "@/types"
+import { getContentPermissions, UserRole } from "@/lib/permissions"
 import { Wand2, Save } from "lucide-react"
 
 /**
@@ -27,6 +28,8 @@ import { Wand2, Save } from "lucide-react"
  */
 export function ContentForm() {
   const { data: session } = useSession()
+  const userRole = session?.user?.role as UserRole
+  const permissions = getContentPermissions(userRole)
   const [profiles, setProfiles] = useState<ProfileWithCreator[]>([])
   const [formData, setFormData] = useState({
     title: "",
@@ -328,10 +331,11 @@ export function ContentForm() {
           <Button 
             onClick={handleGenerate} 
             className="w-full"
-            disabled={!formData.title || formData.categories.length === 0 || !formData.profileId || isGenerating}
+            disabled={!permissions.canGenerate || !formData.title || formData.categories.length === 0 || !formData.profileId || isGenerating}
           >
             <Wand2 className="mr-2 h-4 w-4" />
-            {isGenerating ? "Generating..." : "Generate Content"}
+            {!permissions.canGenerate ? "Generate Content (Permission Required)" : 
+             isGenerating ? "Generating..." : "Generate Content"}
           </Button>
         </CardContent>
       </Card>
@@ -396,9 +400,10 @@ export function ContentForm() {
                   </div>
                 )}
                 
-                <Button onClick={handleSave} className="w-full" disabled={isSaving}>
+                <Button onClick={handleSave} className="w-full" disabled={!permissions.canCreate || isSaving}>
                   <Save className="mr-2 h-4 w-4" />
-                  {isSaving ? 'Saving...' : 'Save Content'}
+                  {!permissions.canCreate ? "Save Content (Permission Required)" : 
+                   isSaving ? 'Saving...' : 'Save Content'}
                 </Button>
               </div>
             </>

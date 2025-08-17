@@ -10,8 +10,6 @@ export default async function DashboardPage() {
     redirect("/login")
   }
   
-  const userRole = session.user.role as 'ADMIN' | 'VIEWER'
-  
   return (
     <AuthenticatedLayout>
       <div className="space-y-6">
@@ -22,7 +20,7 @@ export default async function DashboardPage() {
           </p>
         </div>
         
-        <ContentTable userRole={userRole} />
+        <ContentTable />
       </div>
     </AuthenticatedLayout>
   )

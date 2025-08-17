@@ -112,5 +112,5 @@ export type UserSession = {
   /** User's role determining access permissions
    * @description ADMIN can create/edit/delete, VIEWER can only read
    */
-  role: 'ADMIN' | 'VIEWER'
+  role: 'ADMIN' | 'EDITOR' | 'VIEWER'
 }
