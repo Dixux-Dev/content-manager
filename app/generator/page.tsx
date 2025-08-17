@@ -6,8 +6,8 @@ import { redirect } from "next/navigation"
 export default async function GeneratorPage() {
   const session = await getAuthSession()
   
-  // El middleware se encarga de la redirección
-  // pero lo mantenemos como respaldo
+  // Middleware handles redirection
+  // but we keep this as backup
   if (!session) {
     redirect("/login")
   }
@@ -16,9 +16,9 @@ export default async function GeneratorPage() {
     <AuthenticatedLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Generador de Contenido</h1>
+          <h1 className="text-3xl font-bold">Content Generator</h1>
           <p className="text-muted-foreground mt-2">
-            Crea contenido único utilizando perfiles de IA personalizados
+            Create unique content using personalized AI profiles
           </p>
         </div>
         

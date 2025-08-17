@@ -16,9 +16,9 @@ export default async function HomePage() {
     <AuthenticatedLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard de Contenido</h1>
+          <h1 className="text-3xl font-bold">Content Dashboard</h1>
           <p className="text-muted-foreground mt-2">
-            Bienvenido, {session.user.name || session.user.email}! Gestiona y genera contenido con IA de forma sencilla.
+            Welcome, {session.user.name || session.user.email}! Manage and generate AI content easily.
           </p>
         </div>
         

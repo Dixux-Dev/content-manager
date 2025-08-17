@@ -28,19 +28,12 @@ const createInitialState = (initialValue?: string) => (editor: any) => {
   if (root.getFirstChild() === null) {
     if (initialValue && initialValue.trim() !== '') {
       try {
-        console.log('=== INITIALIZING EDITOR WITH HTML ===')
-        console.log('Initial value:', initialValue)
-        console.log('Initial value type:', typeof initialValue)
-        console.log('Initial value length:', initialValue.length)
-        
         // Use Lexical's native HTML import for proper HTML parsing
-        console.log('=== USING LEXICAL NATIVE HTML IMPORT ===')
         
         // If the content looks like plain text, wrap it in a paragraph
         const isPlainText = !initialValue.includes('<') || initialValue.trim().startsWith('Eres un')
         
         if (isPlainText) {
-          console.log('Content appears to be plain text, wrapping in paragraph')
           const paragraph = $createParagraphNode()
           const textNode = $createTextNode(initialValue)
           paragraph.append(textNode)
@@ -50,7 +43,6 @@ const createInitialState = (initialValue?: string) => (editor: any) => {
         
         // Clean HTML by removing inline styles to use CSS classes instead
         const cleanedHtml = initialValue.replace(/style="[^"]*"/gi, '')
-        console.log('Cleaned HTML:', cleanedHtml)
         
         // Create a temporary DOM parser
         const parser = new DOMParser()
@@ -63,8 +55,6 @@ const createInitialState = (initialValue?: string) => (editor: any) => {
         let nodes: any[] = []
         try {
           nodes = $generateNodesFromDOM(editor, doc)
-          console.log('Generated nodes from DOM:', nodes)
-          console.log('Node count:', nodes.length)
         } catch (domError) {
           console.error('Error generating nodes from DOM:', domError)
           // Fallback to simple text parsing
@@ -77,11 +67,9 @@ const createInitialState = (initialValue?: string) => (editor: any) => {
         
         // Filter out null/undefined nodes
         const validNodes = nodes.filter(node => node != null)
-        console.log('Valid node count:', validNodes.length)
         
         // If no valid nodes, fallback to text
         if (validNodes.length === 0) {
-          console.log('No valid nodes generated, using text fallback')
           const paragraph = $createParagraphNode()
           const textNode = $createTextNode(initialValue)
           paragraph.append(textNode)
@@ -91,23 +79,18 @@ const createInitialState = (initialValue?: string) => (editor: any) => {
         
         // Append only valid nodes to root (ElementNode or DecoratorNode)
         validNodes.forEach((node, index) => {
-          console.log(`Processing node ${index}:`, node?.getType(), node)
-          
           if (node) {
             try {
               // Check if node can be appended to root
               if ($isTextNode(node)) {
-                console.log('Wrapping TextNode in paragraph')
                 // TextNodes must be wrapped in a paragraph
                 const paragraph = $createParagraphNode()
                 paragraph.append(node)
                 root.append(paragraph)
               } else if ($isElementNode(node)) {
-                console.log('Appending ElementNode to root')
                 // ElementNodes can be appended to root
                 root.append(node)
               } else {
-                console.warn('Skipping invalid node type for root:', node.getType(), node)
                 // For unknown node types, wrap in paragraph if possible
                 try {
                   const paragraph = $createParagraphNode()
@@ -118,16 +101,14 @@ const createInitialState = (initialValue?: string) => (editor: any) => {
                     root.append(paragraph)
                   }
                 } catch (e) {
-                  console.error('Failed to convert node to text:', e)
+                  // Skip problematic node conversions
                 }
               }
             } catch (nodeError) {
-              console.error(`Error processing node ${index}:`, nodeError, node)
               // Skip problematic nodes
             }
           }
         })
-        console.log('=== LEXICAL HTML IMPORT COMPLETED ===')
         return
       } catch (error) {
         console.error('Custom HTML parsing failed, using fallback:', error)
@@ -156,8 +137,22 @@ const createEditorConfig = (initialValue?: string): InitialConfigType => ({
   editorState: initialValue ? createInitialState(initialValue) : undefined,
 })
 
-// Plugin to capture editor instance reference
-function EditorRefPlugin({ onEditorReady }: { onEditorReady: (editor: any) => void }) {
+/**
+ * Props for the EditorRefPlugin component
+ * @description Internal plugin to capture editor instance reference
+ */
+interface EditorRefPluginProps {
+  /** Callback fired when editor instance is ready
+   * @param editor - The Lexical editor instance
+   */
+  onEditorReady: (editor: any) => void
+}
+
+/**
+ * Plugin to capture editor instance reference
+ * @description Internal Lexical plugin that provides access to editor instance
+ */
+function EditorRefPlugin({ onEditorReady }: EditorRefPluginProps) {
   const [editor] = useLexicalComposerContext()
   
   React.useEffect(() => {
@@ -169,6 +164,43 @@ function EditorRefPlugin({ onEditorReady }: { onEditorReady: (editor: any) => vo
   return null
 }
 
+/**
+ * Props for the main Editor component
+ * @description Rich text editor built on Lexical with support for HTML import/export
+ */
+interface EditorProps {
+  /** Current Lexical editor state object
+   * @description Direct access to Lexical EditorState - use for programmatic control
+   * @deprecated Prefer using initialValue for initial content
+   */
+  editorState?: EditorState
+  /** Serialized editor state as JSON
+   * @description JSON representation of editor content - useful for persistence
+   * @deprecated Prefer using initialValue for initial content
+   */
+  editorSerializedState?: SerializedEditorState
+  /** Callback fired when editor state changes
+   * @description Receives the raw Lexical EditorState object
+   * @param editorState - The updated Lexical editor state
+   */
+  onChange?: (editorState: EditorState) => void
+  /** Callback fired when serialized state changes
+   * @description Receives JSON representation of editor content
+   * @param editorSerializedState - The serialized editor state as JSON
+   */
+  onSerializedChange?: (editorSerializedState: SerializedEditorState) => void
+  /** Placeholder text shown when editor is empty
+   * @default "Start typing ..."
+   * @example "Enter your content here..."
+   */
+  placeholder?: string
+  /** Initial content to load in the editor
+   * @description Can be HTML string or plain text - automatically parsed
+   * @example "<p>Hello <strong>world</strong></p>" | "Plain text content"
+   */
+  initialValue?: string
+}
+
 export function Editor({
   editorState,
   editorSerializedState,
@@ -176,14 +208,7 @@ export function Editor({
   onSerializedChange,
   placeholder = "Start typing ...",
   initialValue,
-}: {
-  editorState?: EditorState
-  editorSerializedState?: SerializedEditorState
-  onChange?: (editorState: EditorState) => void
-  onSerializedChange?: (editorSerializedState: SerializedEditorState) => void
-  placeholder?: string
-  initialValue?: string
-}) {
+}: EditorProps) {
   const [isInitialized, setIsInitialized] = React.useState(false)
   const [editorInstance, setEditorInstance] = React.useState<any>(null)
   

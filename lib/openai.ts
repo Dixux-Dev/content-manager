@@ -95,7 +95,6 @@ async function withRetry<T>(
     try {
       if (attempt > 0) {
         const delay = exponentialBackoff(attempt - 1)
-        console.log(`Reintentando ${context} (intento ${attempt}/${API_CONFIG.maxRetries}) después de ${delay}ms...`)
         await new Promise(resolve => setTimeout(resolve, delay))
       }
 
@@ -103,7 +102,7 @@ async function withRetry<T>(
     } catch (error) {
       lastError = error
       
-      console.error(`Error en ${context} (intento ${attempt + 1}/${API_CONFIG.maxRetries + 1}):`, {
+      console.error(`Error in ${context} (attempt ${attempt + 1}/${API_CONFIG.maxRetries + 1}):`, {
         error: error instanceof Error ? error.message : String(error),
         cause: error instanceof Error && 'cause' in error ? error.cause : undefined,
         retryable: isRetryableError(error)
@@ -196,25 +195,25 @@ export async function generateContent(params: ContentGenerationParams) {
       // Transform provider errors to user-friendly messages
       switch (error.code) {
         case 'AUTH_ERROR':
-          throw new Error(`API key inválida para ${error.provider}. Verifica tu configuración.`)
+          throw new Error(`Invalid API key for ${error.provider}. Check your configuration.`)
         case 'RATE_LIMIT':
-          throw new Error(`Límite de velocidad excedido para ${error.provider}. Intenta nuevamente en unos minutos.`)
+          throw new Error(`Rate limit exceeded for ${error.provider}. Try again in a few minutes.`)
         case 'QUOTA_ERROR':
-          throw new Error(`Cuota de API agotada para ${error.provider}. Verifica tu saldo.`)
+          throw new Error(`API quota exhausted for ${error.provider}. Check your balance.`)
         case 'CONNECTION_ERROR':
-          throw new Error(`Error de conexión con ${error.provider}. El servidor puede estar temporalmente no disponible.`)
+          throw new Error(`Connection error with ${error.provider}. Server may be temporarily unavailable.`)
         case 'TIMEOUT_ERROR':
-          throw new Error(`La solicitud tardó demasiado en responder con ${error.provider}. Intenta nuevamente.`)
+          throw new Error(`Request took too long to respond with ${error.provider}. Try again.`)
         default:
           if (error.message.includes('not available') || error.message.includes('missing API key')) {
-            throw new Error(`Configuración de IA incompleta. Verifica las variables de entorno (DEEPSEEK_API_KEY u OPENAI_API_KEY).`)
+            throw new Error(`Incomplete AI configuration. Check environment variables (DEEPSEEK_API_KEY or OPENAI_API_KEY).`)
           }
-          throw new Error(`Error en ${error.provider}: ${error.message}`)
+          throw new Error(`Error in ${error.provider}: ${error.message}`)
       }
     }
     
     // Generic error fallback
-    throw new Error('Error al generar contenido con IA. Intenta nuevamente o contacta al soporte si el problema persiste.')
+    throw new Error('Error generating AI content. Try again or contact support if the problem persists.')
   }
 }
 

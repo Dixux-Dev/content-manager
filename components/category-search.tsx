@@ -16,7 +16,7 @@ interface CategorySearchProps {
 export function CategorySearch({ 
   value, 
   onChange, 
-  placeholder = "Buscar o crear categoría...",
+  placeholder = "Search or create category...",
   required = false 
 }: CategorySearchProps) {
   const [categories, setCategories] = useState<string[]>([])
@@ -26,12 +26,12 @@ export function CategorySearch({
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Cargar categorías existentes
+  // Load existing categories
   useEffect(() => {
     fetchCategories()
   }, [])
 
-  // Filtrar categorías según búsqueda
+  // Filter categories based on search
   useEffect(() => {
     if (value.trim() === '') {
       setFilteredCategories(categories)
@@ -43,7 +43,7 @@ export function CategorySearch({
     }
   }, [value, categories])
 
-  // Cerrar dropdown al hacer click fuera
+  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -66,7 +66,7 @@ export function CategorySearch({
         setCategories(data)
       }
     } catch (error) {
-      console.error('Error cargando categorías:', error)
+      console.error('Error loading categories:', error)
     } finally {
       setIsLoading(false)
     }
@@ -88,44 +88,30 @@ export function CategorySearch({
     inputRef.current?.blur()
   }
 
-  // Verificar si ya existe la categoría exacta (case insensitive)
+  // Check if exact category already exists (case insensitive)
   const exactCategoryExists = categories.some(cat => 
     cat.toLowerCase() === value.toLowerCase().trim()
   )
 
   const handleAddNewCategory = () => {
     const trimmedValue = value.trim()
-    console.log('🔵 Agregar nueva categoría:', trimmedValue)
     if (trimmedValue) {
-      console.log('✅ Agregando categoría:', trimmedValue)
       onChange(trimmedValue)
       setShowDropdown(false)
       inputRef.current?.blur()
-      // Actualizar la lista de categorías localmente si no existe
+      // Update category list locally if it doesn't exist
       if (!exactCategoryExists) {
         setCategories(prev => [...prev, trimmedValue])
       }
-    } else {
-      console.log('❌ No se puede agregar categoría vacía')
     }
   }
 
-  // Mostrar botón si hay texto, no existe exactamente, y dropdown está abierto
+  // Show button if there's text, doesn't exist exactly, and dropdown is open
   const showAddButton = value.trim() !== '' && !exactCategoryExists && showDropdown
-  
-  // Debug: mostrar estado del botón
-  if (value.trim() !== '') {
-    console.log('🟡 Estado botón agregar:', {
-      value: value.trim(),
-      exactCategoryExists,
-      showDropdown,
-      showAddButton
-    })
-  }
 
   return (
     <div className="relative">
-      <Label htmlFor="category">Categoría{required && " *"}</Label>
+      <Label htmlFor="category">Category{required && " *"}</Label>
       <div className="relative" ref={dropdownRef}>
         <div className="relative">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -145,11 +131,11 @@ export function CategorySearch({
           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
             {isLoading ? (
               <div className="px-3 py-2 text-sm text-gray-500">
-                Cargando categorías...
+                Loading categories...
               </div>
             ) : (
               <>
-                {/* Categorías existentes filtradas */}
+                {/* Filtered existing categories */}
                 {filteredCategories.length > 0 && (
                   <>
                     {filteredCategories.map((category) => (
@@ -164,12 +150,12 @@ export function CategorySearch({
                   </>
                 )}
 
-                {/* Separador si hay categorías y se puede agregar nueva */}
+                {/* Separator if there are categories and new one can be added */}
                 {filteredCategories.length > 0 && showAddButton && (
                   <div className="border-t border-gray-200"></div>
                 )}
 
-                {/* Botón para agregar nueva categoría */}
+                {/* Button to add new category */}
                 {showAddButton && (
                   <button
                     type="button"
@@ -181,14 +167,14 @@ export function CategorySearch({
                     }}
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Agregar "{value.trim()}"
+                    Add "{value.trim()}"
                   </button>
                 )}
 
-                {/* Mensaje cuando no hay resultados */}
+                {/* Message when no results */}
                 {filteredCategories.length === 0 && !showAddButton && (
                   <div className="px-3 py-2 text-sm text-gray-500">
-                    No se encontraron categorías
+                    No categories found
                   </div>
                 )}
               </>

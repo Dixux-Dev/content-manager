@@ -71,8 +71,6 @@ export class AIProviderFactory {
       this.config.fallback = undefined
     }
 
-    console.log(`AI Provider Factory initialized with providers: ${Array.from(this.providers.keys()).join(', ')}`)
-    console.log(`Primary: ${this.config.primary}, Fallback: ${this.config.fallback || 'none'}, Fallback enabled: ${this.config.enableFallback}`)
   }
 
   async getPrimaryProvider(): Promise<AIProviderInterface> {
@@ -187,13 +185,13 @@ export class AIProviderFactory {
   async generateContent(params: ContentGenerationParams): Promise<AIGenerationResponse> {
     const systemPrompt = params.profile.prompt
 
-    const userPrompt = `Genera contenido con estos datos:
+    const userPrompt = `Generate content with this data:
 
-Título: ${params.title}
-Tipo: ${params.type === 'SNIPPET' ? 'Snippet corto' : 'Página completa'}
-Categorías: ${params.categories.join(', ')}
-${params.wordCount ? `Número de palabras aproximado: ${params.wordCount}` : ''}
-${params.extraInstructions ? `Instrucciones adicionales: ${params.extraInstructions}` : ''}`
+Title: ${params.title}
+Type: ${params.type === 'SNIPPET' ? 'Short snippet' : 'Complete page'}
+Categories: ${params.categories.join(', ')}
+${params.wordCount ? `Approximate word count: ${params.wordCount}` : ''}
+${params.extraInstructions ? `Additional instructions: ${params.extraInstructions}` : ''}`
 
     const maxTokens = params.type === 'SNIPPET' ? 500 : 2000
 
@@ -211,7 +209,6 @@ ${params.extraInstructions ? `Instrucciones adicionales: ${params.extraInstructi
     // Try primary provider
     try {
       const provider = await this.getPrimaryProvider()
-      console.log(`Generating content with primary provider: ${provider.provider}`)
       return await provider.generateCompletion(request)
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))
@@ -221,7 +218,6 @@ ${params.extraInstructions ? `Instrucciones adicionales: ${params.extraInstructi
       if (this.config.enableFallback && this.config.fallback && this.providers.has(this.config.fallback)) {
         try {
           const fallbackProvider = await this.getFallbackProvider()
-          console.log(`Attempting fallback with provider: ${fallbackProvider.provider}`)
           return await fallbackProvider.generateCompletion(request)
         } catch (fallbackError) {
           console.error(`Fallback provider also failed:`, fallbackError)

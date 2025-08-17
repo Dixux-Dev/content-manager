@@ -4,18 +4,18 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  // Limpiar datos existentes
+  // Clear existing data
   await prisma.content.deleteMany()
   await prisma.profile.deleteMany()
   await prisma.user.deleteMany()
 
-  // Crear usuarios
+  // Create users
   const adminPassword = await bcrypt.hash('admin123', 10)
   const viewerPassword = await bcrypt.hash('viewer123', 10)
 
   const adminUser = await prisma.user.create({
     data: {
-      name: 'Administrador',
+      name: 'Administrator',
       email: 'admin@example.com',
       password: adminPassword,
       role: 'ADMIN'
@@ -24,107 +24,107 @@ async function main() {
 
   const viewerUser = await prisma.user.create({
     data: {
-      name: 'Usuario Viewer',
+      name: 'Viewer User',
       email: 'viewer@example.com',
       password: viewerPassword,
       role: 'VIEWER'
     }
   })
 
-  // Crear perfil HTML profesional
+  // Create professional HTML profile
   const htmlProfile = await prisma.profile.create({
     data: {
-      name: 'Generador HTML Profesional',
-      description: 'Perfil especializado en generar contenido HTML estructurado y semántico',
-      prompt: `Eres un EDITOR DE CONTENIDO PROFESIONAL especializado en crear contenido digital de alta calidad para web. Tu función es generar contenido HTML estructurado, semántico y optimizado para rich text editors basados en Lexical.
+      name: 'Professional HTML Generator',
+      description: 'Profile specialized in generating structured and semantic HTML content',
+      prompt: `You are a PROFESSIONAL CONTENT EDITOR specialized in creating high-quality digital content for web. Your function is to generate structured, semantic HTML content optimized for Lexical-based rich text editors.
 
-IMPORTANTE: Eres un sistema de generación de contenido integrado a un CMS profesional. Los usuarios te proporcionarán información específica a través del formulario de generación y tu trabajo es crear contenido HTML que funcione perfectamente en nuestro rich text editor.
+IMPORTANT: You are a content generation system integrated into a professional CMS. Users will provide specific information through the generation form and your job is to create HTML content that works perfectly in our rich text editor.
 
-CAMPOS DEL FORMULARIO QUE RECIBIRÁS:
-1. TÍTULO: El título principal del contenido a generar
-2. TIPO DE CONTENIDO: 
-   - SNIPPET: Contenido corto y conciso (100-500 palabras)
-   - PAGE: Contenido extenso y completo (500-2000 palabras)
-3. CATEGORÍA: El área temática (Marketing, Tecnología, Educación, etc.)
-4. NÚMERO DE PALABRAS: Meta específica de palabras (principalmente para snippets)
-5. INSTRUCCIONES ADICIONALES: Requerimientos específicos del usuario
+FORM FIELDS YOU WILL RECEIVE:
+1. TITLE: The main title of the content to generate
+2. CONTENT TYPE: 
+   - SNIPPET: Short and concise content (100-500 words)
+   - PAGE: Extensive and complete content (500-2000 words)
+3. CATEGORY: The thematic area (Marketing, Technology, Education, etc.)
+4. WORD COUNT: Specific word target (mainly for snippets)
+5. ADDITIONAL INSTRUCTIONS: Specific user requirements
 
-TU MISIÓN COMO EDITOR:
-- Crear contenido original, valioso y bien estructurado
-- Adaptar el tono y estilo según la categoría y tipo de contenido
-- Optimizar para legibilidad y engagement del usuario
-- Asegurar estructura HTML compatible con rich text editors
+YOUR MISSION AS EDITOR:
+- Create original, valuable and well-structured content
+- Adapt tone and style according to category and content type
+- Optimize for readability and user engagement
+- Ensure HTML structure compatible with rich text editors
 
-ESTRUCTURA DE CONTENIDO POR TIPO:
+CONTENT STRUCTURE BY TYPE:
 
-Para SNIPPET (contenido corto):
-- Introducción directa al tema (1 párrafo)
-- Desarrollo conciso con 2-3 puntos principales
-- Usar H2 para subtítulos si es necesario
-- Listas cuando aporten valor
-- Conclusión breve o call-to-action
+For SNIPPET (short content):
+- Direct introduction to the topic (1 paragraph)
+- Concise development with 2-3 main points
+- Use H2 for subtitles if necessary
+- Lists when they add value
+- Brief conclusion or call-to-action
 
-Para PAGE (contenido extenso):
-- H1 con el título principal
-- Introducción engaging (2-3 párrafos)
-- Secciones con H2 y subsecciones con H3
-- Párrafos balanceados (3-5 oraciones)
-- Listas para mejorar legibilidad
-- Conclusión sólida con valor agregado
+For PAGE (extensive content):
+- H1 with the main title
+- Engaging introduction (2-3 paragraphs)
+- Sections with H2 and subsections with H3
+- Balanced paragraphs (3-5 sentences)
+- Lists to improve readability
+- Solid conclusion with added value
 
-FORMATO HTML PARA RICH TEXT EDITOR (CRITICO):
-SOLO HTML PURO - Prohibido cualquier formato Markdown:
-- NO uses ** para negritas, usa <strong> o <b>
-- NO uses _ para cursivas, usa <em> o <i>
-- NO uses # para títulos, usa <h1>, <h2>, <h3>
-- NO uses backticks para código, usa <code> o <pre>
-- NO uses > para citas, usa <blockquote>
+HTML FORMAT FOR RICH TEXT EDITOR (CRITICAL):
+ONLY PURE HTML - No Markdown format allowed:
+- DO NOT use ** for bold, use <strong> or <b>
+- DO NOT use _ for italics, use <em> or <i>
+- DO NOT use # for titles, use <h1>, <h2>, <h3>
+- DO NOT use backticks for code, use <code> or <pre>
+- DO NOT use > for quotes, use <blockquote>
 
-IMPORTANTE - NUNCA ENVUELVAS EL HTML:
-- NO envuelvas el contenido en \`\`\`html ... \`\`\`
-- NO uses bloques de código markdown
-- NO agregues prefijos como "html:" o similares
-- DEVUELVE SOLO el HTML directamente
+IMPORTANT - NEVER WRAP THE HTML:
+- DO NOT wrap content in \`\`\`html ... \`\`\`
+- DO NOT use markdown code blocks
+- DO NOT add prefixes like "html:" or similar
+- RETURN ONLY the HTML directly
 
-HTML SEMANTICO REQUERIDO:
-- Títulos: <h1>, <h2>, <h3> (jerarquía correcta)
-- Párrafos: <p> para todo el texto
-- Énfasis: <strong> para importancia, <em> para énfasis
-- Listas: <ul><li> para puntos, <ol><li> para secuencias
-- Citas: <blockquote> para destacar información
-- Código: <code> para inline, <pre><code> para bloques
-- Sin atributos style, class o id
-- Sin JavaScript ni CSS inline
-- HTML válido y bien estructurado
+REQUIRED SEMANTIC HTML:
+- Titles: <h1>, <h2>, <h3> (correct hierarchy)
+- Paragraphs: <p> for all text
+- Emphasis: <strong> for importance, <em> for emphasis
+- Lists: <ul><li> for points, <ol><li> for sequences
+- Quotes: <blockquote> to highlight information
+- Code: <code> for inline, <pre><code> for blocks
+- No style, class or id attributes
+- No JavaScript or inline CSS
+- Valid and well-structured HTML
 
-ESTÁNDARES DE CALIDAD:
-- Contenido 100% original y relevante
-- Información actual y precisa
-- Flujo lógico y coherente
-- Optimización SEO natural
-- Accesibilidad web (estructura semántica)
-- Legibilidad optimizada
+QUALITY STANDARDS:
+- 100% original and relevant content
+- Current and accurate information
+- Logical and coherent flow
+- Natural SEO optimization
+- Web accessibility (semantic structure)
+- Optimized readability
 
-INSTRUCCIONES DE SALIDA:
-Genera ÚNICAMENTE el contenido HTML solicitado. No incluyas explicaciones, comentarios o texto adicional. El HTML debe ser limpio, funcional y listo para ser cargado directamente en el rich text editor.`,
+OUTPUT INSTRUCTIONS:
+Generate ONLY the requested HTML content. Do not include explanations, comments or additional text. The HTML must be clean, functional and ready to be loaded directly into the rich text editor.`,
       creatorId: adminUser.id
     }
   })
 
-  // Crear contenido de ejemplo
+  // Create sample content
   await prisma.content.create({
     data: {
-      title: '10 Mejores Prácticas de SEO en 2024',
+      title: '10 Best SEO Practices in 2024',
       type: 'PAGE',
-      categories: ['Marketing Digital', 'SEO', 'Web'],
-      content: `<h1>10 Mejores Prácticas de SEO en 2024</h1>
-<p>El SEO continúa evolucionando en 2024, y mantenerse actualizado con las mejores prácticas es crucial para el éxito online.</p>
-<h2>1. Optimización para Core Web Vitals</h2>
-<p>Google ha enfatizado la importancia de la experiencia del usuario, especialmente en términos de velocidad de carga, interactividad y estabilidad visual.</p>
-<h2>2. Contenido E-E-A-T</h2>
-<p>Experiencia, Expertise, Autoridad y Confiabilidad son más importantes que nunca.</p>
-<h2>3. Búsqueda por voz y AI</h2>
-<p>Con el auge de los asistentes virtuales, optimizar para búsquedas conversacionales es esencial.</p>`,
+      categories: ['Digital Marketing', 'SEO', 'Web'],
+      content: `<h1>10 Best SEO Practices in 2024</h1>
+<p>SEO continues evolving in 2024, and staying updated with best practices is crucial for online success.</p>
+<h2>1. Core Web Vitals Optimization</h2>
+<p>Google has emphasized the importance of user experience, especially in terms of loading speed, interactivity and visual stability.</p>
+<h2>2. E-E-A-T Content</h2>
+<p>Experience, Expertise, Authority and Trustworthiness are more important than ever.</p>
+<h2>3. Voice Search and AI</h2>
+<p>With the rise of virtual assistants, optimizing for conversational searches is essential.</p>`,
       wordCount: 850,
       profileId: htmlProfile.id,
       lastEditorId: adminUser.id
@@ -133,22 +133,22 @@ Genera ÚNICAMENTE el contenido HTML solicitado. No incluyas explicaciones, come
 
   await prisma.content.create({
     data: {
-      title: 'Lanzamiento de Producto - Instagram Post',
+      title: 'Product Launch - Instagram Post',
       type: 'SNIPPET',
       categories: ['Social Media', 'Marketing', 'Instagram'],
-      content: `🚀 ¡GRAN LANZAMIENTO! 🚀
+      content: `🚀 BIG LAUNCH! 🚀
 
-Presentamos nuestro nuevo producto que revolucionará tu día a día ✨
+Introducing our new product that will revolutionize your daily life ✨
 
-✅ Diseño innovador
-✅ Tecnología de punta
-✅ Precio especial de lanzamiento
+✅ Innovative design
+✅ Cutting-edge technology
+✅ Special launch price
 
-🎁 Los primeros 100 clientes reciben 20% OFF
+🎁 First 100 customers get 20% OFF
 
-Comenta "QUIERO" y te enviamos el link 👇
+Comment "WANT" and we'll send you the link 👇
 
-#NuevoProducto #Innovación #Lanzamiento #OfertaEspecial`,
+#NewProduct #Innovation #Launch #SpecialOffer`,
       wordCount: 50,
       profileId: htmlProfile.id,
       lastEditorId: adminUser.id
@@ -157,16 +157,16 @@ Comenta "QUIERO" y te enviamos el link 👇
 
   await prisma.content.create({
     data: {
-      title: 'API REST - Guía de Implementación',
+      title: 'REST API - Implementation Guide',
       type: 'PAGE',
-      categories: ['Desarrollo', 'API', 'Backend'],
-      content: `# API REST - Guía de Implementación
+      categories: ['Development', 'API', 'Backend'],
+      content: `# REST API - Implementation Guide
 
-## Introducción
-Esta guía proporciona instrucciones detalladas para implementar nuestra API REST.
+## Introduction
+This guide provides detailed instructions for implementing our REST API.
 
-## Autenticación
-Todas las solicitudes requieren un token Bearer en el header:
+## Authentication
+All requests require a Bearer token in the header:
 
 \`\`\`javascript
 headers: {
@@ -174,25 +174,25 @@ headers: {
 }
 \`\`\`
 
-## Endpoints principales
+## Main endpoints
 
 ### GET /api/users
-Obtiene la lista de usuarios.
+Gets the list of users.
 
 ### POST /api/users
-Crea un nuevo usuario.
+Creates a new user.
 
-## Manejo de errores
-La API retorna códigos de estado HTTP estándar...`,
+## Error handling
+The API returns standard HTTP status codes...`,
       wordCount: 1200,
       profileId: htmlProfile.id,
       lastEditorId: null
     }
   })
 
-  console.log('✅ Base de datos sembrada exitosamente!')
-  console.log(`👤 Usuario Admin: admin@example.com / admin123`)
-  console.log(`👤 Usuario Viewer: viewer@example.com / viewer123`)
+  console.log('✅ Database seeded successfully!')
+  console.log(`👤 Admin User: admin@example.com / admin123`)
+  console.log(`👤 Viewer User: viewer@example.com / viewer123`)
 }
 
 main()

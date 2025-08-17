@@ -6,13 +6,11 @@ import { detectLanguage } from '@/components/ui/code-block'
 function createSafeTextNode(text: string, format: number = 0): any {
   // Ensure text is valid
   if (typeof text !== 'string') {
-    console.warn('🔍 Invalid text for node:', text)
     text = String(text || '')
   }
   
   // Ensure format is a valid number
   if (typeof format !== 'number' || isNaN(format)) {
-    console.warn('🔍 Invalid format for node:', format)
     format = 0
   }
   
@@ -31,7 +29,6 @@ function createSafeTextNode(text: string, format: number = 0): any {
 function createSafeParagraphNode(children: any[] = []): any {
   // Validate children array
   if (!Array.isArray(children)) {
-    console.warn('🔍 Invalid children for paragraph:', children)
     children = []
   }
   
@@ -135,19 +132,12 @@ function parseInlineElements(element: HTMLElement): any[] {
       if (tagName === 'u') newFormat = newFormat | 8 // underline
       if (tagName === 's' || tagName === 'strike') newFormat = newFormat | 4 // strikethrough
       
-      // FIXED: Handle Lexical theme classes
+      // Handle Lexical theme classes
       if (classList.includes('EditorTheme__textBold')) newFormat = newFormat | 1 // bold
       if (classList.includes('EditorTheme__textItalic')) newFormat = newFormat | 2 // italic
       if (classList.includes('EditorTheme__textUnderline') || classList.includes('EditorTheme__textUnderlineStrikethrough')) newFormat = newFormat | 8 // underline
       if (classList.includes('EditorTheme__textStrikethrough') || classList.includes('EditorTheme__textUnderlineStrikethrough')) newFormat = newFormat | 4 // strikethrough
       
-      console.log('🔍 Processing element:', {
-        tagName,
-        classList: classList,
-        originalFormat: format,
-        newFormat: newFormat,
-        formatDiff: newFormat ^ format
-      })
       
       // Handle <br> tags as newlines in text content
       if (tagName === 'br') {
@@ -161,15 +151,9 @@ function parseInlineElements(element: HTMLElement): any[] {
           version: 1
         })
       } else if (tagName === 'span' && el.hasAttribute('data-lexical-text')) {
-        // FIXED: Handle Lexical text spans with formatting classes
+        // Handle Lexical text spans with formatting classes
         const text = el.textContent || ''
         if (text.length > 0) {
-          console.log('🔍 Found Lexical text span:', {
-            text: text,
-            classes: classList,
-            finalFormat: newFormat
-          })
-          
           nodes.push(createSafeTextNode(text, newFormat))
         }
         // Don't process children since we already extracted the text
@@ -687,14 +671,13 @@ export function htmlToSerializedState(html: string): SerializedEditorState {
         }
       }
     } catch (error) {
-      console.error('🔍 Error processing element:', element, error)
+      console.error('Error processing element:', element, error)
       // Skip problematic elements instead of crashing
     }
   })
   
   // If no children, add an empty paragraph
   if (children.length === 0) {
-    console.log('🔍 No children found, adding empty paragraph')
     children.push({
       children: [],
       direction: "ltr",
@@ -704,8 +687,6 @@ export function htmlToSerializedState(html: string): SerializedEditorState {
       version: 1
     })
   }
-  
-  console.log('🔍 Final serialized state children:', children)
   
   const result = {
     root: {
@@ -718,7 +699,6 @@ export function htmlToSerializedState(html: string): SerializedEditorState {
     }
   } as any
   
-  console.log('🔍 === HTML TO SERIALIZED STATE RESULT ===', JSON.stringify(result, null, 2))
   return result
 }
 
@@ -727,18 +707,6 @@ function textNodeToHtml(node: any): string {
   let text = node.text || ''
   const format = node.format || 0
   
-  // DEBUG: Log text node processing
-  console.log('🎨 textNodeToHtml DEBUG:', {
-    originalText: text,
-    format: format,
-    formatBinary: format.toString(2),
-    formatBreakdown: {
-      bold: !!(format & 1),
-      italic: !!(format & 2), 
-      strikethrough: !!(format & 4),
-      underline: !!(format & 8)
-    }
-  })
   
   // Check if text contains HTML elements that should be preserved
   // This allows users to insert raw HTML like <img> tags
@@ -747,43 +715,32 @@ function textNodeToHtml(node: any): string {
   if (hasHtmlTags) {
     // If text contains HTML tags, return it as-is to preserve the HTML
     // This allows things like <img src="..."> to work
-    console.log('🎨 Preserving HTML tags in text:', text)
     return text
   }
   
   // Apply formatting based on format bitmask with inline styles
   if (format & 1) {
     text = `<strong style="font-weight: bold;">${text}</strong>` // bold
-    console.log('🎨 Applied BOLD formatting:', text)
   }
   if (format & 2) {
     text = `<em style="font-style: italic;">${text}</em>` // italic
-    console.log('🎨 Applied ITALIC formatting:', text)
   }
   if (format & 4) {
     text = `<s style="text-decoration: line-through;">${text}</s>` // strikethrough
-    console.log('🎨 Applied STRIKETHROUGH formatting:', text)
   }
   if (format & 8) {
     text = `<u style="text-decoration: underline;">${text}</u>` // underline
-    console.log('🎨 Applied UNDERLINE formatting:', text)
   }
-  
-  console.log('🎨 Final formatted text:', text)
   return text
 }
 
 // Convierte el estado del editor a HTML con estilos inline
 export function serializedStateToHtml(serializedState: SerializedEditorState): string {
   try {
-    console.log('🎨 === SERIALIZED STATE TO HTML ===', JSON.stringify(serializedState, null, 2))
     let html = ''
     serializedState.root.children.forEach((child: any) => {
-      console.log('🎨 Processing child node:', child)
       if (child.type === 'paragraph') {
-        console.log('🎨 Paragraph children:', child.children)
         const content = child.children.map((c: any) => textNodeToHtml(c)).join('')
-        console.log('🎨 Paragraph content after formatting:', content)
         const alignment = child.format || ''
         let alignmentStyle = ''
         if (alignment === 'center') alignmentStyle = ' text-align: center;'
@@ -1023,7 +980,7 @@ function decodeHtmlEntities(text: string): string {
     .replace(/&nbsp;/g, ' ')
 }
 
-// Verifica si el contenido del editor está vacío
+// Check if editor content is empty
 export function isEditorEmpty(serializedState: SerializedEditorState): boolean {
   try {
     const text = serializedStateToText(serializedState)

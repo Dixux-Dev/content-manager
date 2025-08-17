@@ -13,11 +13,21 @@ import { Editor } from "@/components/editor/editor"
 import { StyledContent } from "@/components/editor/styled-content"
 import { SerializedEditorState } from "lexical"
 import { serializedStateToText, isEditorEmpty, htmlToSerializedState, serializedStateToHtml } from "@/lib/editor-utils"
+import { ProfileWithCreator } from "@/types"
 import { Wand2, Save } from "lucide-react"
 
+/**
+ * Content generation and management form component
+ * @description Main form for generating new content using AI profiles and managing content creation workflow
+ * @component
+ * @example
+ * ```tsx
+ * <ContentForm />
+ * ```
+ */
 export function ContentForm() {
   const { data: session } = useSession()
-  const [profiles, setProfiles] = useState([])
+  const [profiles, setProfiles] = useState<ProfileWithCreator[]>([])
   const [formData, setFormData] = useState({
     title: "",
     type: "PAGE",
@@ -40,24 +50,24 @@ export function ContentForm() {
   // Removed extraInstructionsEditorState - using simple text now
   const [contentEditorState, setContentEditorState] = useState<SerializedEditorState | undefined>()
 
-  // Cargar perfiles desde API
+  // Load profiles from API
   useEffect(() => {
     fetchProfiles()
 
-    // Suscribirse a eventos de perfiles para sincronización
+    // Subscribe to profile events for synchronization
     const unsubscribeCreated = profileEvents.subscribe('profile-created', () => {
-      fetchProfiles() // Recargar lista cuando se crea un perfil
+      fetchProfiles() // Reload list when profile is created
     })
 
     const unsubscribeUpdated = profileEvents.subscribe('profile-updated', () => {
-      fetchProfiles() // Recargar lista cuando se actualiza un perfil
+      fetchProfiles() // Reload list when profile is updated
     })
 
     const unsubscribeDeleted = profileEvents.subscribe('profile-deleted', () => {
-      fetchProfiles() // Recargar lista cuando se elimina un perfil
+      fetchProfiles() // Reload list when profile is deleted
     })
 
-    // Cleanup - desuscribirse cuando el componente se desmonta
+    // Cleanup - unsubscribe when component unmounts
     return () => {
       unsubscribeCreated()
       unsubscribeUpdated()
@@ -73,7 +83,7 @@ export function ContentForm() {
         setProfiles(data)
       }
     } catch (error) {
-      console.error('Error cargando perfiles:', error)
+      console.error('Error loading profiles:', error)
     }
   }
 
@@ -127,9 +137,6 @@ export function ContentForm() {
         
         // Process the content and set states for immediate proper rendering
         if (data.content && data.content.trim()) {
-          console.log('=== SETTING GENERATED CONTENT ===')
-          console.log('Generated content:', data.content)
-          
           // Set the HTML content for saving purposes
           setGeneratedContent(data.content)
           
@@ -145,7 +152,6 @@ export function ContentForm() {
           })
         } else {
           // Handle empty content
-          console.log('=== NO CONTENT GENERATED ===')
           setGeneratedContent("")
           setContentEditorState(undefined)
           
@@ -157,11 +163,11 @@ export function ContentForm() {
         }
       } else {
         const error = await response.json()
-        alert(`Error generando contenido: ${error.error || 'Error desconocido'}`)
+        alert(`Error generating content: ${error.error || 'Unknown error'}`)
       }
     } catch (error) {
-      console.error('Error generando contenido:', error)
-      alert('Error de conexión al generar contenido')
+      console.error('Error generating content:', error)
+      alert('Connection error when generating content')
     } finally {
       setIsGenerating(false)
       setIsTimerRunning(false)
@@ -174,13 +180,12 @@ export function ContentForm() {
   }, [])
 
   const handleContentEditorChange = useCallback((state: SerializedEditorState) => {
-    console.log('✏️ Editor content changed, text:', serializedStateToText(state).substring(0, 50))
     setContentEditorState(state)
   }, [])
 
   const handleSave = useCallback(async () => {
     if (!generatedContent && !contentEditorState) {
-      alert('No hay contenido generado para guardar')
+      alert('No generated content to save')
       return
     }
     
@@ -192,15 +197,10 @@ export function ContentForm() {
       if (contentEditorState) {
         // Convert current editor state to HTML
         contentToSave = serializedStateToHtml(contentEditorState)
-        console.log('💾 Saving editor state as HTML:', contentToSave.substring(0, 200) + '...')
       } else {
         // Use original generated content
         contentToSave = generatedContent
-        console.log('💾 Saving original generated content:', contentToSave.substring(0, 200) + '...')
       }
-      
-      console.log('🎨 === SENDING TO API ===')
-      console.log('🎨 Final content being sent to API:', contentToSave)
       
       const response = await fetch('/api/content', {
         method: 'POST',
@@ -220,10 +220,8 @@ export function ContentForm() {
 
       if (response.ok) {
         const savedData = await response.json()
-        console.log('🎨 === CONTENT SAVED SUCCESSFULLY ===')
-        console.log('🎨 Saved data response:', savedData)
-        alert('Contenido guardado exitosamente')
-        // Limpiar formulario
+        alert('Content saved successfully')
+        // Clear form
         setFormData({
           title: "",
           type: "PAGE",
@@ -236,13 +234,11 @@ export function ContentForm() {
         setContentEditorState(undefined)
       } else {
         const errorData = await response.json()
-        console.log('🎨 === SAVE ERROR ===')
-        console.log('🎨 Error data:', errorData)
-        alert(`Error guardando contenido: ${errorData.error || 'Error desconocido'}`)
+        alert(`Error saving content: ${errorData.error || 'Unknown error'}`)
       }
     } catch (error) {
-      console.error('Error guardando contenido:', error)
-      alert('Error guardando contenido')
+      console.error('Error saving content:', error)
+      alert('Error saving content')
     } finally {
       setIsSaving(false)
     }
@@ -252,28 +248,28 @@ export function ContentForm() {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Generar Nuevo Contenido</CardTitle>
+          <CardTitle>Generate New Content</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="title">Título</Label>
+            <Label htmlFor="title">Title</Label>
             <Input
               id="title"
               value={formData.title}
               onChange={(e) => setFormData({...formData, title: e.target.value})}
-              placeholder="Ingresa el título del contenido"
+              placeholder="Enter the content title"
             />
           </div>
 
           <div>
-            <Label htmlFor="type">Tipo de Contenido</Label>
+            <Label htmlFor="type">Content Type</Label>
             <select
               id="type"
               className="w-full px-3 py-2 border rounded-md"
               value={formData.type}
               onChange={(e) => setFormData({...formData, type: e.target.value})}
             >
-              <option value="PAGE">Página</option>
+              <option value="PAGE">Page</option>
               <option value="SNIPPET">Snippet</option>
             </select>
           </div>
@@ -282,21 +278,21 @@ export function ContentForm() {
             <MultiCategorySelector
               value={formData.categories}
               onChange={(value) => setFormData({...formData, categories: value})}
-              placeholder="Buscar o crear categorías..."
+              placeholder="Search or create categories..."
               required
             />
           </div>
 
           <div>
-            <Label htmlFor="profile">Perfil de Generación</Label>
+            <Label htmlFor="profile">Generation Profile</Label>
             <select
               id="profile"
               className="w-full px-3 py-2 border rounded-md"
               value={formData.profileId}
               onChange={(e) => setFormData({...formData, profileId: e.target.value})}
             >
-              <option value="">Selecciona un perfil</option>
-              {profiles.map((profile: any) => (
+              <option value="">Select a profile</option>
+              {profiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
                   {profile.name}
                 </option>
@@ -306,24 +302,24 @@ export function ContentForm() {
 
           {formData.type === 'SNIPPET' && (
             <div>
-              <Label htmlFor="wordCount">Número de Palabras</Label>
+              <Label htmlFor="wordCount">Word Count</Label>
               <Input
                 id="wordCount"
                 type="number"
                 value={formData.wordCount}
                 onChange={(e) => setFormData({...formData, wordCount: e.target.value})}
-                placeholder="Ej: 150"
+                placeholder="Ex: 150"
               />
             </div>
           )}
 
           <div>
-            <Label htmlFor="extra">Instrucciones Adicionales</Label>
+            <Label htmlFor="extra">Additional Instructions</Label>
             <Textarea
               id="extra"
               value={formData.extraInstructions}
               onChange={(e) => handleExtraInstructionsChange(e.target.value)}
-              placeholder="Agrega instrucciones específicas..."
+              placeholder="Add specific instructions..."
               className="mt-2"
               rows={4}
             />
@@ -335,33 +331,33 @@ export function ContentForm() {
             disabled={!formData.title || formData.categories.length === 0 || !formData.profileId || isGenerating}
           >
             <Wand2 className="mr-2 h-4 w-4" />
-            {isGenerating ? "Generando..." : "Generar Contenido"}
+            {isGenerating ? "Generating..." : "Generate Content"}
           </Button>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Vista Previa del Contenido</CardTitle>
+          <CardTitle>Content Preview</CardTitle>
         </CardHeader>
         <CardContent>
           {isGenerating ? (
             // Loading state during content generation
             <div className="space-y-4">
               <div className="mb-4">
-                <Label>Generando Contenido...</Label>
+                <Label>Generating Content...</Label>
                 <div className="mt-2 relative">
                   {/* Loading overlay for the editor */}
                   <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-md border">
                     <div className="flex flex-col items-center space-y-3">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      <p className="text-sm text-gray-600">Generando contenido...</p>
+                      <p className="text-sm text-gray-600">Generating content...</p>
                     </div>
                   </div>
                   <Editor
                     editorSerializedState={undefined}
                     onSerializedChange={() => {}}
-                    placeholder="El contenido aparecerá aquí..."
+                    placeholder="Content will appear here..."
                   />
                 </div>
               </div>
@@ -369,7 +365,7 @@ export function ContentForm() {
               {/* Live time counter during generation */}
               <div className="bg-blue-50 p-3 rounded-md text-sm border border-blue-200">
                 <div className="flex justify-between items-center">
-                  <span className="text-blue-700 font-medium">⏱️ Tiempo transcurrido:</span>
+                  <span className="text-blue-700 font-medium">⏱️ Elapsed time:</span>
                   <span className="text-blue-800 font-mono">{(generationTime / 1000).toFixed(1)}s</span>
                 </div>
               </div>
@@ -377,13 +373,13 @@ export function ContentForm() {
           ) : generatedContent ? (
             <>
               <div className="mb-4">
-                <Label>Vista Previa del Contenido (Editable)</Label>
+                <Label>Content Preview (Editable)</Label>
                 <div className="mt-2">
                   <StyledContent>
                     <Editor
                       onSerializedChange={handleContentEditorChange}
                       initialValue={generatedContent}
-                      placeholder="El contenido generado aparecerá aquí para editar..."
+                      placeholder="Generated content will appear here for editing..."
                     />
                   </StyledContent>
                 </div>
@@ -394,7 +390,7 @@ export function ContentForm() {
                 {generationTime > 0 && (
                   <div className="bg-green-50 p-3 rounded-md text-sm border border-green-200">
                     <div className="flex justify-between items-center">
-                      <span className="text-green-700 font-medium">✅ Generación completada en:</span>
+                      <span className="text-green-700 font-medium">✅ Generation completed in:</span>
                       <span className="text-green-800 font-mono">{(generationTime / 1000).toFixed(2)}s</span>
                     </div>
                   </div>
@@ -402,14 +398,14 @@ export function ContentForm() {
                 
                 <Button onClick={handleSave} className="w-full" disabled={isSaving}>
                   <Save className="mr-2 h-4 w-4" />
-                  {isSaving ? 'Guardando...' : 'Guardar Contenido'}
+                  {isSaving ? 'Saving...' : 'Save Content'}
                 </Button>
               </div>
             </>
           ) : (
             <div className="text-center text-gray-500 py-12">
               <Wand2 className="mx-auto h-12 w-12 mb-4 text-gray-300" />
-              <p>El contenido generado aparecerá aquí</p>
+              <p>Generated content will appear here</p>
             </div>
           )}
         </CardContent>

@@ -2,9 +2,41 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Props for the Input component
+ * @description Extends native HTML input attributes with consistent styling
+ */
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {}
 
+/**
+ * Styled input component with consistent design system integration
+ * @description A flexible input component that extends the native HTML input with
+ * consistent styling, focus states, and accessibility features
+ * 
+ * Features:
+ * - Consistent styling with design system
+ * - Focus ring and hover states
+ * - Disabled state styling
+ * - File input styling
+ * - Placeholder text styling
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * // Basic text input
+ * <Input type="text" placeholder="Enter your name" />
+ * 
+ * // Email input with validation
+ * <Input type="email" required placeholder="your@email.com" />
+ * 
+ * // Number input
+ * <Input type="number" min={0} max={100} />
+ * 
+ * // File input
+ * <Input type="file" accept="image/*" />
+ * ```
+ */
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, ...props }, ref) => {
     return (

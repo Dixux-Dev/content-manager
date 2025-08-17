@@ -17,19 +17,19 @@ import { Button } from "@/components/ui/button"
 
 const routes = [
   {
-    label: "Contenido",
+    label: "Content",
     icon: Home,
     href: "/",
     color: "text-sky-500",
   },
   {
-    label: "Generador",
+    label: "Generator",
     icon: PlusCircle,
     href: "/generator",
     color: "text-violet-500",
   },
   {
-    label: "Perfiles",
+    label: "Profiles",
     icon: User,
     href: "/profiles",
     color: "text-pink-700",
@@ -97,7 +97,7 @@ export function Sidebar() {
             className="w-full justify-start text-gray-400 hover:text-white hover:bg-white/10"
           >
             <LogOut className="h-4 w-4 mr-2" />
-            Cerrar Sesión
+            Sign Out
           </Button>
         </div>
       )}

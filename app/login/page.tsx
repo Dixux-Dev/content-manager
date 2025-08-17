@@ -18,7 +18,7 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
-  // Si ya está autenticado, redirigir al dashboard
+  // If already authenticated, redirect to dashboard
   useEffect(() => {
     if (status === "authenticated") {
       router.push("/dashboard")
@@ -38,13 +38,13 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
-        setError("Credenciales incorrectas. Por favor, verifica tu email y contraseña.")
+        setError("Incorrect credentials. Please verify your email and password.")
       } else {
         router.push("/dashboard")
         router.refresh()
       }
     } catch (error) {
-      setError("Ocurrió un error al iniciar sesión. Por favor, intenta nuevamente.")
+      setError("An error occurred while signing in. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -56,17 +56,17 @@ export default function LoginPage() {
         <Link href="/">
           <Button variant="ghost" className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver al inicio
+            Back to Home
           </Button>
         </Link>
         
         <Card className="w-full">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">
-              Iniciar Sesión
+              Sign In
             </CardTitle>
             <CardDescription className="text-center">
-              Ingresa tus credenciales para acceder al Content Manager
+              Enter your credentials to access Content Manager
             </CardDescription>
           </CardHeader>
         <CardContent>
@@ -76,7 +76,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="tu@email.com"
+                placeholder="your@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -84,7 +84,7 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -105,21 +105,21 @@ export default function LoginPage() {
               className="w-full"
               disabled={isLoading}
             >
-              {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
+              {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
         </CardContent>
         <CardFooter>
           <p className="text-sm text-gray-600 text-center w-full">
-            ¿No tienes una cuenta? Contacta al administrador.
+            Don't have an account? Contact the administrator.
           </p>
         </CardFooter>
       </Card>
       
-      {/* Credenciales de prueba */}
+      {/* Test credentials */}
       <Card className="bg-blue-50">
         <CardHeader>
-          <CardTitle className="text-lg">🔐 Credenciales de Prueba</CardTitle>
+          <CardTitle className="text-lg">🔐 Test Credentials</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="text-sm">

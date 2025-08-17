@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-// GET - Obtener todo el contenido
+// GET - Get all content
 export async function GET() {
   try {
     const content = await prisma.content.findMany({
@@ -28,15 +28,15 @@ export async function GET() {
 
     return NextResponse.json(content)
   } catch (error) {
-    console.error('Error obteniendo contenido:', error)
+    console.error('Error getting content:', error)
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
 }
 
-// POST - Crear nuevo contenido
+// POST - Create new content
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -50,27 +50,27 @@ export async function POST(request: NextRequest) {
       lastEditorId 
     } = body
 
-    // Validación
+    // Validation
     if (!title || !type || !categories || !Array.isArray(categories) || categories.length === 0 || !content || !profileId) {
       return NextResponse.json(
-        { error: 'Faltan campos requeridos o las categorías deben ser un array no vacío' },
+        { error: 'Missing required fields or categories must be a non-empty array' },
         { status: 400 }
       )
     }
 
-    // Verificar que el perfil existe
+    // Verify that profile exists
     const profile = await prisma.profile.findUnique({
       where: { id: profileId }
     })
 
     if (!profile) {
       return NextResponse.json(
-        { error: `El perfil con ID ${profileId} no existe` },
+        { error: `Profile with ID ${profileId} does not exist` },
         { status: 400 }
       )
     }
 
-    // Verificar que el usuario editor existe (si se proporciona)
+    // Verify that editor user exists (if provided)
     let validEditor = null
     if (lastEditorId) {
       validEditor = await prisma.user.findUnique({
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       })
 
       if (!validEditor) {
-        console.warn(`Usuario con ID ${lastEditorId} no existe, se guardará sin editor`)
+        console.warn(`User with ID ${lastEditorId} does not exist, will save without editor`)
       }
     }
 
@@ -112,26 +112,26 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(newContent, { status: 201 })
   } catch (error) {
-    console.error('Error creando contenido:', error)
+    console.error('Error creating content:', error)
     
-    // Manejo específico de errores de Prisma
+    // Specific Prisma error handling
     if (error instanceof Error) {
       if (error.message.includes('Foreign key constraint')) {
         return NextResponse.json(
-          { error: 'Error de relación: Verifique que el perfil y usuario existan' },
+          { error: 'Relationship error: Verify that profile and user exist' },
           { status: 400 }
         )
       }
     }
     
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
 }
 
-// PUT - Actualizar contenido existente
+// PUT - Update existing content
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
@@ -146,10 +146,10 @@ export async function PUT(request: NextRequest) {
       lastEditorId 
     } = body
 
-    // Validación
+    // Validation
     if (!id || !title || !type || !categories || !Array.isArray(categories) || categories.length === 0 || !content || !profileId) {
       return NextResponse.json(
-        { error: 'Faltan campos requeridos o las categorías deben ser un array no vacío' },
+        { error: 'Missing required fields or categories must be a non-empty array' },
         { status: 400 }
       )
     }
@@ -186,15 +186,15 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(updatedContent)
   } catch (error) {
-    console.error('Error actualizando contenido:', error)
+    console.error('Error updating content:', error)
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
 }
 
-// DELETE - Eliminar contenido
+// DELETE - Delete content
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -202,7 +202,7 @@ export async function DELETE(request: NextRequest) {
 
     if (!id) {
       return NextResponse.json(
-        { error: 'ID de contenido requerido' },
+        { error: 'Content ID required' },
         { status: 400 }
       )
     }
@@ -212,13 +212,13 @@ export async function DELETE(request: NextRequest) {
     })
 
     return NextResponse.json(
-      { message: 'Contenido eliminado exitosamente' },
+      { message: 'Content deleted successfully' },
       { status: 200 }
     )
   } catch (error) {
-    console.error('Error eliminando contenido:', error)
+    console.error('Error deleting content:', error)
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

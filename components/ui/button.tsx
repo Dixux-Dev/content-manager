@@ -33,12 +33,54 @@ const buttonVariants = cva(
   }
 )
 
+/**
+ * Props for the Button component
+ * @description Extends native button attributes with variant styling options
+ */
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
+  /** Render as child element instead of button
+   * @default false
+   * @description When true, renders the component as a Slot for composition
+   */
   asChild?: boolean
 }
 
+/**
+ * Versatile button component with multiple variants and sizes
+ * @description A flexible button component based on Radix UI with customizable styling
+ * 
+ * Available variants:
+ * - default: Primary action button
+ * - destructive: For dangerous actions (delete, etc.)
+ * - outline: Bordered button for secondary actions
+ * - secondary: Muted secondary button
+ * - ghost: Text-only button with hover effects
+ * - link: Link-styled button
+ * 
+ * Available sizes:
+ * - default: Standard size (h-10)
+ * - sm: Small size (h-9)
+ * - lg: Large size (h-11) 
+ * - icon: Square icon button (h-10 w-10)
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * // Basic usage
+ * <Button>Click me</Button>
+ * 
+ * // With variants
+ * <Button variant="destructive">Delete</Button>
+ * <Button variant="outline" size="sm">Cancel</Button>
+ * 
+ * // As a link component
+ * <Button asChild>
+ *   <Link href="/about">About</Link>
+ * </Button>
+ * ```
+ */
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"

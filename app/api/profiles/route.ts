@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-// GET - Obtener todos los perfiles
+// GET - Get all profiles
 export async function GET() {
   try {
     const profiles = await prisma.profile.findMany({
@@ -21,15 +21,15 @@ export async function GET() {
 
     return NextResponse.json(profiles)
   } catch (error) {
-    console.error('Error obteniendo perfiles:', error)
+    console.error('Error getting profiles:', error)
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
 }
 
-// POST - Crear nuevo perfil
+// POST - Create new profile
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -40,10 +40,10 @@ export async function POST(request: NextRequest) {
       creatorId 
     } = body
 
-    // Validación
+    // Validation
     if (!name || !prompt || !creatorId) {
       return NextResponse.json(
-        { error: 'Faltan campos requeridos' },
+        { error: 'Missing required fields' },
         { status: 400 }
       )
     }
@@ -68,15 +68,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(newProfile, { status: 201 })
   } catch (error) {
-    console.error('Error creando perfil:', error)
+    console.error('Error creating profile:', error)
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
 }
 
-// PUT - Actualizar perfil existente
+// PUT - Update existing profile
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
@@ -87,10 +87,10 @@ export async function PUT(request: NextRequest) {
       prompt
     } = body
 
-    // Validación
+    // Validation
     if (!id || !name || !prompt) {
       return NextResponse.json(
-        { error: 'Faltan campos requeridos' },
+        { error: 'Missing required fields' },
         { status: 400 }
       )
     }
@@ -116,15 +116,15 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(updatedProfile)
   } catch (error) {
-    console.error('Error actualizando perfil:', error)
+    console.error('Error updating profile:', error)
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
 }
 
-// DELETE - Eliminar perfil
+// DELETE - Delete profile
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -132,19 +132,19 @@ export async function DELETE(request: NextRequest) {
 
     if (!id) {
       return NextResponse.json(
-        { error: 'ID de perfil requerido' },
+        { error: 'Profile ID required' },
         { status: 400 }
       )
     }
 
-    // Verificar si el perfil tiene contenido asociado
+    // Check if profile has associated content
     const contentCount = await prisma.content.count({
       where: { profileId: id }
     })
 
     if (contentCount > 0) {
       return NextResponse.json(
-        { error: 'No se puede eliminar un perfil que tiene contenido asociado' },
+        { error: 'Cannot delete a profile that has associated content' },
         { status: 400 }
       )
     }
@@ -154,13 +154,13 @@ export async function DELETE(request: NextRequest) {
     })
 
     return NextResponse.json(
-      { message: 'Perfil eliminado exitosamente' },
+      { message: 'Profile deleted successfully' },
       { status: 200 }
     )
   } catch (error) {
-    console.error('Error eliminando perfil:', error)
+    console.error('Error deleting profile:', error)
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

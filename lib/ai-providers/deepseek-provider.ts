@@ -109,7 +109,6 @@ export class DeepSeekProvider implements AIProviderInterface {
       try {
         if (attempt > 0) {
           const delay = this.exponentialBackoff(attempt - 1)
-          console.log(`Retrying ${context} (attempt ${attempt}/${this.retryConfig.maxRetries}) after ${delay}ms...`)
           await new Promise(resolve => setTimeout(resolve, delay))
         }
 

@@ -7,17 +7,60 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Search, X, Trash2 } from "lucide-react"
 
+/**
+ * Props for the MultiCategorySelector component
+ * @description Category selection component with search, create, and delete functionality
+ */
 interface MultiCategorySelectorProps {
+  /** Array of currently selected category names
+   * @description The controlled value of selected categories
+   * @example ["development", "typescript", "documentation"]
+   */
   value: string[]
+  /** Callback fired when category selection changes
+   * @description Called with updated array when categories are added or removed
+   * @param value - The new array of selected category names
+   */
   onChange: (value: string[]) => void
+  /** Placeholder text for the search input
+   * @default "Search or create categories..."
+   * @example "Select project categories..."
+   */
   placeholder?: string
+  /** Whether category selection is required
+   * @default false
+   * @description Adds visual indicator and affects validation
+   */
   required?: boolean
 }
 
+/**
+ * Multi-select category component with search, create, and delete functionality
+ * @description Allows users to select multiple categories from existing ones or create new categories
+ * Features include:
+ * - Search/filter existing categories
+ * - Create new categories on-the-fly
+ * - Delete existing categories (with confirmation)
+ * - Visual badges for selected categories
+ * - Keyboard navigation support
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * const [categories, setCategories] = useState<string[]>([])
+ * 
+ * <MultiCategorySelector
+ *   value={categories}
+ *   onChange={setCategories}
+ *   placeholder="Select categories..."
+ *   required
+ * />
+ * ```
+ */
 export function MultiCategorySelector({ 
   value, 
   onChange, 
-  placeholder = "Buscar o crear categorías...",
+  placeholder = "Search or create categories...",
   required = false 
 }: MultiCategorySelectorProps) {
   const [categories, setCategories] = useState<string[]>([])
@@ -28,15 +71,15 @@ export function MultiCategorySelector({
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Cargar categorías existentes
+  // Load existing categories
   useEffect(() => {
     fetchCategories()
   }, [])
 
-  // Filtrar categorías según búsqueda
+  // Filter categories based on search
   useEffect(() => {
     if (searchValue.trim() === '') {
-      // Mostrar solo categorías no seleccionadas
+      // Show only unselected categories
       setFilteredCategories(categories.filter(cat => !value.includes(cat)))
     } else {
       const filtered = categories.filter(category =>
@@ -47,7 +90,7 @@ export function MultiCategorySelector({
     }
   }, [searchValue, categories, value])
 
-  // Cerrar dropdown al hacer click fuera
+  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -70,7 +113,7 @@ export function MultiCategorySelector({
         setCategories(data)
       }
     } catch (error) {
-      console.error('Error cargando categorías:', error)
+      console.error('Error loading categories:', error)
     } finally {
       setIsLoading(false)
     }
@@ -99,7 +142,7 @@ export function MultiCategorySelector({
     onChange(value.filter(cat => cat !== categoryToRemove))
   }
 
-  // Verificar si ya existe la categoría exacta (case insensitive)
+  // Check if exact category already exists (case insensitive)
   const exactCategoryExists = categories.some(cat => 
     cat.toLowerCase() === searchValue.toLowerCase().trim()
   )
@@ -110,7 +153,7 @@ export function MultiCategorySelector({
       onChange([...value, trimmedValue])
       setSearchValue("")
       setShowDropdown(false)
-      // Actualizar la lista de categorías localmente si no existe
+      // Update category list locally if it doesn't exist
       if (!exactCategoryExists) {
         setCategories(prev => [...prev, trimmedValue])
       }
@@ -120,7 +163,7 @@ export function MultiCategorySelector({
 
   const handleDeleteCategory = async (categoryToDelete: string) => {
     const confirmed = window.confirm(
-      `¿Estás seguro de que quieres eliminar permanentemente la categoría "${categoryToDelete}"? Se eliminará de todos los contenidos existentes.`
+      `Are you sure you want to permanently delete the category "${categoryToDelete}"? It will be removed from all existing content.`
     )
     
     if (!confirmed) return
@@ -138,26 +181,26 @@ export function MultiCategorySelector({
 
       if (response.ok) {
         const data = await response.json()
-        // Remover la categoría de la lista local
+        // Remove category from local list
         setCategories(prev => prev.filter(cat => 
           cat.toLowerCase().trim() !== categoryToDelete.toLowerCase().trim()
         ))
-        // Remover la categoría de los valores seleccionados si estaba seleccionada
+        // Remove category from selected values if it was selected
         onChange(value.filter(cat => 
           cat.toLowerCase().trim() !== categoryToDelete.toLowerCase().trim()
         ))
-        alert(data.message || `Categoría "${categoryToDelete}" eliminada exitosamente`)
+        alert(data.message || `Category "${categoryToDelete}" deleted successfully`)
       } else {
         const error = await response.json()
-        alert(`Error eliminando categoría: ${error.error || 'Error desconocido'}`)
+        alert(`Error deleting category: ${error.error || 'Unknown error'}`)
       }
     } catch (error) {
-      console.error('Error eliminando categoría:', error)
-      alert('Error de conexión al eliminar categoría')
+      console.error('Error deleting category:', error)
+      alert('Connection error when deleting category')
     }
   }
 
-  // Manejar teclas Enter para agregar categoría
+  // Handle Enter key to add category
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -169,12 +212,12 @@ export function MultiCategorySelector({
     }
   }
 
-  // Mostrar botón si hay texto, no existe exactamente, y dropdown está abierto
+  // Show button if there's text, doesn't exist exactly, and dropdown is open
   const showAddButton = searchValue.trim() !== '' && !exactCategoryExists && showDropdown && !value.includes(searchValue.trim())
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="categories">Categorías{required && " *"}</Label>
+      <Label htmlFor="categories">Categories{required && " *"}</Label>
       
       {/* Selected categories badges */}
       {value.length > 0 && (
@@ -216,11 +259,11 @@ export function MultiCategorySelector({
           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
             {isLoading ? (
               <div className="px-3 py-2 text-sm text-gray-500">
-                Cargando categorías...
+                Loading categories...
               </div>
             ) : (
               <>
-                {/* Categorías existentes filtradas */}
+                {/* Filtered existing categories */}
                 {filteredCategories.length > 0 && (
                   <>
                     {filteredCategories.map((category) => (
@@ -242,7 +285,7 @@ export function MultiCategorySelector({
                             e.stopPropagation()
                             handleDeleteCategory(category)
                           }}
-                          title={`Eliminar categoría "${category}" permanentemente`}
+                          title={`Delete category "${category}" permanently`}
                         >
                           <Trash2 className="h-3 w-3" />
                         </button>
@@ -251,12 +294,12 @@ export function MultiCategorySelector({
                   </>
                 )}
 
-                {/* Separador si hay categorías y se puede agregar nueva */}
+                {/* Separator if there are categories and new one can be added */}
                 {filteredCategories.length > 0 && showAddButton && (
                   <div className="border-t border-gray-200"></div>
                 )}
 
-                {/* Botón para agregar nueva categoría */}
+                {/* Button to add new category */}
                 {showAddButton && (
                   <button
                     type="button"
@@ -264,14 +307,14 @@ export function MultiCategorySelector({
                     onClick={handleAddNewCategory}
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Agregar "{searchValue.trim()}"
+                    Add "{searchValue.trim()}"
                   </button>
                 )}
 
-                {/* Mensaje cuando no hay resultados */}
+                {/* Message when no results */}
                 {filteredCategories.length === 0 && !showAddButton && (
                   <div className="px-3 py-2 text-sm text-gray-500">
-                    {searchValue.trim() ? 'No se encontraron categorías' : 'Escribe para buscar o crear categorías'}
+                    {searchValue.trim() ? 'No categories found' : 'Type to search or create categories'}
                   </div>
                 )}
               </>

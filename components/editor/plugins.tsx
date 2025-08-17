@@ -255,7 +255,7 @@ export function Plugins({ placeholder = "Start typing ...", onSerializedChange }
                   debouncedHtmlUpdate(newHtml)
                 }
               }}
-              placeholder="Código HTML..."
+              placeholder="HTML Code..."
               className="min-h-[200px] font-mono text-sm"
               rows={10}
               disabled={isTransitioning || isConverting}

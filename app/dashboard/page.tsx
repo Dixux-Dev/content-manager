@@ -16,9 +16,9 @@ export default async function DashboardPage() {
     <AuthenticatedLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard de Contenido</h1>
+          <h1 className="text-3xl font-bold">Content Dashboard</h1>
           <p className="text-muted-foreground mt-2">
-            Bienvenido, {session.user.name || session.user.email}! Tu rol es: {session.user.role}
+            Welcome, {session.user.name || session.user.email}! Your role is: {session.user.role}
           </p>
         </div>
         

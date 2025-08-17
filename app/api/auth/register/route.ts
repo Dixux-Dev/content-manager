@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     const validation = registerSchema.safeParse(body)
     if (!validation.success) {
       return NextResponse.json(
-        { error: "Datos inválidos", details: validation.error.errors },
+        { error: "Invalid data", details: validation.error.errors },
         { status: 400 }
       )
     }
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: "El usuario ya existe" },
+        { error: "User already exists" },
         { status: 409 }
       )
     }
@@ -54,13 +54,13 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json(
-      { message: "Usuario creado exitosamente", user },
+      { message: "User created successfully", user },
       { status: 201 }
     )
   } catch (error) {
     console.error("Error registering user:", error)
     return NextResponse.json(
-      { error: "Error al crear el usuario" },
+      { error: "Error creating user" },
       { status: 500 }
     )
   }

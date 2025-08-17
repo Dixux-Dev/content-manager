@@ -7,27 +7,27 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { title, type, categories, profileId, wordCount, extraInstructions } = body
 
-    // Validación básica
+    // Basic validation
     if (!title || !type || !categories || !Array.isArray(categories) || categories.length === 0 || !profileId) {
       return NextResponse.json(
-        { error: 'Faltan campos requeridos o las categorías deben ser un array no vacío' },
+        { error: 'Missing required fields or categories must be a non-empty array' },
         { status: 400 }
       )
     }
 
-    // Obtener el perfil
+    // Get the profile
     const profile = await prisma.profile.findUnique({
       where: { id: profileId }
     })
 
     if (!profile) {
       return NextResponse.json(
-        { error: 'Perfil no encontrado' },
+        { error: 'Profile not found' },
         { status: 404 }
       )
     }
 
-    // Generar contenido usando DeepSeek con prompt del perfil únicamente
+    // Generate content using DeepSeek with profile prompt only
     const generatedContent = await generateContent({
       title,
       type,
@@ -45,22 +45,22 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error generando contenido:', error)
+    console.error('Error generating content:', error)
     
-    // Pasar errores específicos de la función generateContent al cliente
+    // Pass specific errors from generateContent function to client
     if (error instanceof Error) {
-      // Determinar el código de estado apropiado basado en el mensaje de error
+      // Determine appropriate status code based on error message
       let statusCode = 500
       
-      if (error.message.includes('API key inválida') || error.message.includes('unauthorized')) {
+      if (error.message.includes('API key invalid') || error.message.includes('unauthorized')) {
         statusCode = 401
-      } else if (error.message.includes('Límite de velocidad') || error.message.includes('rate limit')) {
+      } else if (error.message.includes('Rate limit') || error.message.includes('rate limit')) {
         statusCode = 429
-      } else if (error.message.includes('Cuota de API') || error.message.includes('billing')) {
+      } else if (error.message.includes('API quota') || error.message.includes('billing')) {
         statusCode = 402 // Payment Required
-      } else if (error.message.includes('Error de conexión') || error.message.includes('no disponible')) {
+      } else if (error.message.includes('Connection error') || error.message.includes('not available')) {
         statusCode = 503 // Service Unavailable
-      } else if (error.message.includes('tardó demasiado') || error.message.includes('timeout')) {
+      } else if (error.message.includes('took too long') || error.message.includes('timeout')) {
         statusCode = 408 // Request Timeout
       }
       
@@ -74,10 +74,10 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Error genérico
+    // Generic error
     return NextResponse.json(
       { 
-        error: 'Error interno del servidor',
+        error: 'Internal server error',
         type: 'internal_error',
         retryable: false
       },

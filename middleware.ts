@@ -6,7 +6,7 @@ export default withAuth({
   },
 })
 
-// Proteger rutas específicas incluida la raíz
+// Protect specific routes including root
 export const config = {
   matcher: [
     "/",
