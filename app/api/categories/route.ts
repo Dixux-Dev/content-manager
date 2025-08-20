@@ -13,7 +13,7 @@ export async function GET() {
 
     // Extract and flatten all categories from JSON arrays
     const allCategories = new Set<string>()
-    content.forEach(item => {
+    content.forEach((item: { categories: any }) => {
       if (Array.isArray(item.categories)) {
         item.categories.forEach((category: any) => {
           if (category && typeof category === 'string' && category.trim() !== '') {
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       }
     })
     
-    const categoryExists = content.some(item => {
+    const categoryExists = content.some((item: { categories: any }) => {
       if (Array.isArray(item.categories)) {
         return item.categories.some((cat: any) => 
           typeof cat === 'string' && cat.toLowerCase().trim() === category.toLowerCase().trim()
