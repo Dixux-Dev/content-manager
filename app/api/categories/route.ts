@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { ContentSelect } from '@/types'
 
 // GET - Get unique categories from existing content
 export async function GET() {
@@ -14,10 +13,10 @@ export async function GET() {
 
     // Extract and flatten all categories from JSON arrays
     const allCategories = new Set<string>()
-    content.forEach((item: { categories: any }) => {
+    content.forEach((item: { categories: unknown }) => {
       if (Array.isArray(item.categories)) {
-        item.categories.forEach((category: string) => {
-          if (category && typeof category === 'string' && category.trim() !== '') {
+        item.categories.forEach((category: unknown) => {
+          if (typeof category === 'string' && category.trim() !== '') {
             allCategories.add(category.trim())
           }
         })
@@ -58,9 +57,9 @@ export async function POST(request: NextRequest) {
       }
     })
     
-    const categoryExists = content.some((item: { categories: any }) => {
+    const categoryExists = content.some((item: { categories: unknown }) => {
       if (Array.isArray(item.categories)) {
-        return item.categories.some((cat: string) => 
+        return item.categories.some((cat: unknown) => 
           typeof cat === 'string' && cat.toLowerCase().trim() === category.toLowerCase().trim()
         )
       }
@@ -113,9 +112,9 @@ export async function DELETE(request: NextRequest) {
     })
 
     // Update each content to remove the category
-    const updatePromises = contents.map(async (content: ContentSelect) => {
+    const updatePromises = contents.map(async (content: { id: string; categories: unknown }) => {
       if (Array.isArray(content.categories)) {
-        const updatedCategories = content.categories.filter((cat: string) => 
+        const updatedCategories = content.categories.filter((cat: unknown) => 
           !(typeof cat === 'string' && cat.toLowerCase().trim() === category.toLowerCase().trim())
         )
         
@@ -132,7 +131,7 @@ export async function DELETE(request: NextRequest) {
 
     // Execute all updates
     const results = await Promise.all(updatePromises)
-    const updatedCount = results.filter(r => r !== null).length
+    const updatedCount = results.filter((r: unknown) => r !== null).length
 
     return NextResponse.json({ 
       message: `Category "${category}" deleted from ${updatedCount} content(s)`,

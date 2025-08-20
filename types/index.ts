@@ -107,3 +107,16 @@ export interface HeadingNode extends EditorNode {
 }
 
 export type AnyEditorNode = TextNode | ParagraphNode | HeadingNode | EditorNode
+
+// Utility types for better TypeScript compatibility
+export type FilterFunction<T> = (item: T) => boolean
+export type MapFunction<T, U> = (item: T, index: number, array: T[]) => U
+export type ForEachFunction<T> = (item: T, index: number, array: T[]) => void
+
+// Prisma result types (what actually comes from database)
+export type PrismaContentResult = {
+  id: string
+  categories: unknown // JsonValue from Prisma
+}
+
+export type PrismaUpdateResult = any | null
