@@ -1,116 +1,109 @@
-/**
- * Type definitions for the Content Manager application
- * Provides comprehensive type safety for content, profiles, and user management
- */
+// Global TypeScript definitions for Content Manager project
 
-/**
- * Content item with all related data including profile and editor information
- * @description Represents a complete content item with relationships to profile and user data
- */
-export type ContentWithRelations = {
-  /** Unique identifier for the content item */
-  id: string
-  /** The title/name of the content */
-  title: string
-  /** Type of content - either a snippet or full page
-   * @example "SNIPPET" | "PAGE"
-   */
-  type: 'SNIPPET' | 'PAGE'
-  /** Array of category tags associated with this content
-   * @example ["development", "typescript", "documentation"]
-   */
-  categories: string[]
-  /** The actual content data, can be HTML, markdown, or Lexical JSON
-   * @description Content format depends on the editor used - may be HTML or serialized JSON
-   */
-  content: string
-  /** Target or actual word count for the content
-   * @default null - calculated automatically for generated content
-   */
-  wordCount: number | null
-  /** Reference to the generation profile used */
-  profileId: string
-  /** The profile object with creator information */
-  profile: {
-    /** Unique identifier for the profile */
-    id: string
-    /** Display name of the profile */
-    name: string
-    /** Optional description of the profile's purpose */
-    description: string | null
-  }
-  /** When the content was first created */
-  createdAt: Date
-  /** When the content was last modified */
-  updatedAt: Date
-  /** Information about the last user to edit this content */
-  lastEditor: {
-    /** Unique identifier for the user */
-    id: string
-    /** Display name of the user (optional) */
-    name: string | null
-    /** Email address of the user */
-    email: string
-  } | null
-  /** Reference to the last editor's ID */
-  lastEditorId: string | null
-}
+export type ContentType = 'SNIPPET' | 'PAGE'
+export type UserRole = 'ADMIN' | 'EDITOR' | 'VIEWER'
 
-/**
- * Generation profile with creator information
- * @description Defines AI generation parameters and settings for content creation
- */
-export type ProfileWithCreator = {
-  /** Unique identifier for the profile */
+// Prisma-based types
+export interface User {
   id: string
-  /** Display name of the profile */
-  name: string
-  /** Optional description explaining the profile's purpose and use case */
-  description: string | null
-  /** The system prompt/instructions for AI generation
-   * @example "You are a technical writer specializing in API documentation..."
-   */
-  prompt: string
-  /** The tone of voice for generated content
-   * @example "professional" | "casual" | "academic"
-   */
-  tone: string | null
-  /** Writing style preferences
-   * @example "concise" | "detailed" | "conversational"
-   */
-  style: string | null
-  /** Output format preferences
-   * @example "markdown" | "html" | "plain text"
-   */
-  format: string | null
-  /** Information about who created this profile */
-  creator: {
-    /** Unique identifier for the creator */
-    id: string
-    /** Display name of the creator (optional) */
-    name: string | null
-    /** Email address of the creator */
-    email: string
-  }
-  /** When the profile was created */
-  createdAt: Date
-  /** When the profile was last updated */
-  updatedAt: Date
-}
-
-/**
- * User session information for authentication and authorization
- * @description Contains user data needed for session management and access control
- */
-export type UserSession = {
-  /** Unique identifier for the user */
-  id: string
-  /** Display name of the user (optional) */
   name: string | null
-  /** Email address used for authentication */
   email: string
-  /** User's role determining access permissions
-   * @description ADMIN can create/edit/delete, VIEWER can only read
-   */
-  role: 'ADMIN' | 'EDITOR' | 'VIEWER'
+  password: string
+  role: UserRole
+  createdAt: Date
+  updatedAt: Date
 }
+
+export interface Profile {
+  id: string
+  name: string
+  description: string | null
+  prompt: string
+  creatorId: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface ProfileWithCreator extends Profile {
+  creator: User
+}
+
+export interface Content {
+  id: string
+  title: string
+  type: ContentType
+  categories: string[] // JSON array of category strings
+  content: string
+  wordCount: number | null
+  profileId: string
+  lastEditorId: string | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface ContentWithRelations extends Content {
+  profile: Profile
+  lastEditor: User | null
+}
+
+// Partial types for API operations  
+export type ContentSelect = { id: string; categories: any } // Prisma JsonValue compatibility
+export type ContentUpdate = Partial<Pick<Content, 'categories'>>
+export type UserUpdate = Partial<Pick<User, 'name' | 'role'>>
+
+// Form data types
+export interface ContentFormData {
+  title: string
+  type: ContentType
+  categories: string[]
+  wordCount?: number
+  extraInstructions?: string
+}
+
+// Event handler types
+export type SelectChangeEvent = React.ChangeEvent<HTMLSelectElement>
+export type InputChangeEvent = React.ChangeEvent<HTMLInputElement>
+export type FormSubmitEvent = React.FormEvent<HTMLFormElement>
+
+// API response types
+export interface ApiError {
+  error: string
+  details?: string
+}
+
+export interface ApiSuccess<T = any> {
+  success: true
+  data?: T
+  message?: string
+}
+
+// Editor types (basic definitions to avoid 'any')
+export interface EditorNode {
+  type: string
+  version: number
+}
+
+export interface TextNode extends EditorNode {
+  type: 'text'
+  text: string
+  format: number
+  detail: number
+  mode: string
+  style: string
+}
+
+export interface ParagraphNode extends EditorNode {
+  type: 'paragraph'
+  children: EditorNode[]
+  direction: string
+  format: string
+  indent: number
+}
+
+export interface HeadingNode extends EditorNode {
+  type: 'heading'
+  tag: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
+  children: EditorNode[]
+}
+
+export type AnyEditorNode = TextNode | ParagraphNode | HeadingNode | EditorNode

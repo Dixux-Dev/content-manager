@@ -2,10 +2,12 @@
 
 type ProfileEventType = 'profile-created' | 'profile-updated' | 'profile-deleted'
 
+import { Profile } from '@/types'
+
 interface ProfileEvent {
   type: ProfileEventType
   profileId?: string
-  profile?: any
+  profile?: Profile
 }
 
 class ProfileEventEmitter {
@@ -39,14 +41,14 @@ class ProfileEventEmitter {
   }
 
   // Helper methods for specific events
-  profileCreated(profile: any) {
+  profileCreated(profile: Profile) {
     this.emit({
       type: 'profile-created',
       profile
     })
   }
 
-  profileUpdated(profile: any) {
+  profileUpdated(profile: Profile) {
     this.emit({
       type: 'profile-updated',
       profileId: profile.id,

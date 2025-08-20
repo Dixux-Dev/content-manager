@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { hasPermission, UserRole } from '@/lib/permissions'
+import { UserUpdate } from '@/types'
 
 export async function GET() {
   try {
@@ -97,7 +98,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const updateData: Partial<{ name: string; role: 'ADMIN' | 'EDITOR' | 'VIEWER' }> = {}
+    const updateData: UserUpdate = {}
     if (name !== undefined) updateData.name = name
     if (role !== undefined) updateData.role = role
 

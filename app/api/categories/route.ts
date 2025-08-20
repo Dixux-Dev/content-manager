@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { ContentSelect } from '@/types'
 
 // GET - Get unique categories from existing content
 export async function GET() {
@@ -112,7 +113,7 @@ export async function DELETE(request: NextRequest) {
     })
 
     // Update each content to remove the category
-    const updatePromises = contents.map(async (content: { id: string; categories: any }) => {
+    const updatePromises = contents.map(async (content: ContentSelect) => {
       if (Array.isArray(content.categories)) {
         const updatedCategories = content.categories.filter((cat: string) => 
           !(typeof cat === 'string' && cat.toLowerCase().trim() === category.toLowerCase().trim())
