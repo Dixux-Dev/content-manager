@@ -471,7 +471,7 @@ function ContentFormModal({
             <select
               className="w-full px-3 py-2 border rounded-md"
               value={formData.type}
-              onChange={(e) => setFormData({...formData, type: e.target.value as any})}
+              onChange={(e) => setFormData({...formData, type: e.target.value as 'SNIPPET' | 'PAGE'})}
               disabled={viewOnly}
             >
               <option value="SNIPPET">Snippet</option>

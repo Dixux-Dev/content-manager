@@ -97,7 +97,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const updateData: any = {}
+    const updateData: Partial<{ name: string; role: 'ADMIN' | 'EDITOR' | 'VIEWER' }> = {}
     if (name !== undefined) updateData.name = name
     if (role !== undefined) updateData.role = role
 

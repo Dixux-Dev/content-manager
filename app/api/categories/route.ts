@@ -15,7 +15,7 @@ export async function GET() {
     const allCategories = new Set<string>()
     content.forEach((item: { categories: any }) => {
       if (Array.isArray(item.categories)) {
-        item.categories.forEach((category: any) => {
+        item.categories.forEach((category: string) => {
           if (category && typeof category === 'string' && category.trim() !== '') {
             allCategories.add(category.trim())
           }
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     
     const categoryExists = content.some((item: { categories: any }) => {
       if (Array.isArray(item.categories)) {
-        return item.categories.some((cat: any) => 
+        return item.categories.some((cat: string) => 
           typeof cat === 'string' && cat.toLowerCase().trim() === category.toLowerCase().trim()
         )
       }
@@ -112,9 +112,9 @@ export async function DELETE(request: NextRequest) {
     })
 
     // Update each content to remove the category
-    const updatePromises = contents.map(async (content) => {
+    const updatePromises = contents.map(async (content: { id: string; categories: any }) => {
       if (Array.isArray(content.categories)) {
-        const updatedCategories = content.categories.filter((cat: any) => 
+        const updatedCategories = content.categories.filter((cat: string) => 
           !(typeof cat === 'string' && cat.toLowerCase().trim() === category.toLowerCase().trim())
         )
         
