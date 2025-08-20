@@ -44,6 +44,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Documentation
+/docs/
+migrate-to-supabase.md
+
 # Claude Code documentation and context files
 CONTENT_GENERATION_IMPLEMENTATION.md
 CRUD_TEST.md
