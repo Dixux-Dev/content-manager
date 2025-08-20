@@ -36,7 +36,7 @@ class ProfileEventEmitter {
   emit(event: ProfileEvent) {
     const callbacks = this.listeners.get(event.type)
     if (callbacks) {
-      callbacks.forEach(callback => callback(event))
+      callbacks.forEach((callback: any) => callback(event))
     }
   }
 

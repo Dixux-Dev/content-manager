@@ -176,7 +176,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete user and related data in a transaction
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       // Update content to remove references to this user
       await tx.content.updateMany({
         where: { lastEditorId: id },

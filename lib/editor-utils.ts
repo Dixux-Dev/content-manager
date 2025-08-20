@@ -33,7 +33,7 @@ function createSafeParagraphNode(children: any[] = []): any {
   }
   
   // Filter out invalid children
-  const validChildren = children.filter(child => {
+  const validChildren = children.filter((child: any) => {
     return child && typeof child === 'object' && child.type === 'text'
   })
   
@@ -173,13 +173,13 @@ function parseInlineElements(element: HTMLElement): any[] {
       } else {
         // Only process children for non-span elements or spans without data-lexical-text
         if (!(tagName === 'span' && el.hasAttribute('data-lexical-text'))) {
-          el.childNodes.forEach(child => processNode(child, newFormat))
+          el.childNodes.forEach((child: any) => processNode(child, newFormat))
         }
       }
     }
   }
   
-  element.childNodes.forEach(child => processNode(child))
+  element.childNodes.forEach((child: any) => processNode(child))
   
   // FIX: Always ensure we have at least one text node, even if empty
   if (nodes.length === 0) {
@@ -229,7 +229,7 @@ export function htmlToSerializedState(html: string): SerializedEditorState {
   
   const children: any[] = []
   
-  elements.forEach((element) => {
+  elements.forEach((element: any) => {
     try {
       if (element.nodeType === Node.TEXT_NODE) {
         const text = element.textContent?.trim()
@@ -301,7 +301,7 @@ export function htmlToSerializedState(html: string): SerializedEditorState {
             const textParts: string[] = []
             
             // Process each child node to preserve line breaks
-            Array.from(el.childNodes).forEach((node) => {
+            Array.from(el.childNodes).forEach((node: any) => {
               if (node.nodeType === Node.ELEMENT_NODE) {
                 const element = node as HTMLElement
                 if (element.tagName.toLowerCase() === 'span' && element.getAttribute('data-lexical-text') === 'true') {
@@ -392,11 +392,11 @@ export function htmlToSerializedState(html: string): SerializedEditorState {
           if (rows.length > 0) {
             const tableChildren: any[] = []
             
-            rows.forEach((row, rowIndex) => {
+            rows.forEach((row: any, rowIndex: number) => {
               const cells = Array.from(row.querySelectorAll('td, th'))
               const rowChildren: any[] = []
               
-              cells.forEach((cell, cellIndex) => {
+              cells.forEach((cell: any, cellIndex: number) => {
                 const cellTextNodes = parseInlineElements(cell as HTMLElement)
                 
                 // Create a paragraph inside the cell
@@ -465,7 +465,7 @@ export function htmlToSerializedState(html: string): SerializedEditorState {
             const nestedLists: any[] = []
             
             // Process child nodes to separate text content from nested lists
-            Array.from(item.childNodes).forEach((child) => {
+            Array.from(item.childNodes).forEach((child: any) => {
               if (child.nodeType === Node.TEXT_NODE) {
                 const text = child.textContent?.trim()
                 if (text) {
@@ -488,7 +488,7 @@ export function htmlToSerializedState(html: string): SerializedEditorState {
                   const nestedItems = Array.from(childEl.querySelectorAll(':scope > li'))
                   const nestedListChildren: any[] = []
                   
-                  nestedItems.forEach((nestedItem) => {
+                  nestedItems.forEach((nestedItem: any) => {
                     const nestedTextNodes = parseInlineElements(nestedItem as HTMLElement)
                     
                     // Create paragraph for nested item
@@ -576,7 +576,7 @@ export function htmlToSerializedState(html: string): SerializedEditorState {
           if (directListItems.length > 0) {
             const listChildren: any[] = []
             
-            directListItems.forEach((item) => {
+            directListItems.forEach((item: any) => {
               const listItem = processListItem(item as HTMLElement)
               listChildren.push(listItem)
             })
